@@ -21,6 +21,18 @@ enum ServiceStatus {
   COMPLETED
 }
 
+enum EvalStatus {
+  DRAFT
+  COMPLETED
+  REVIEWED
+}
+
+enum ChangeType {
+  PROMOTION
+  TRANSFER
+  UPDATE
+}
+
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -53,10 +65,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company   Company? @relation(fields: [companyId], references: [id])
-  accounts  Account[]
-  sessions  Session[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company  Company?  @relation(fields: [companyId], references: [id])
+  accounts Account[]
+  sessions Session[]
 
   @@index([tenantId])
   @@index([email])
@@ -120,9 +132,12 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  services Service[]
-  users    User[]
+  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services         Service[]
+  users            User[]
+  employees        Employee[]
+  jobDescriptions  JobDescription[]
+  performanceEvals PerformanceEvaluation[]
 
   @@index([tenantId])
   @@map("companies")
@@ -172,4 +187,104 @@ model Document {
   @@index([tenantId])
   @@index([serviceId])
   @@map("documents")
+}
+
+// ─── Job Descriptions ────────────────────────────────────────────────────────
+
+model JobDescription {
+  id               String   @id @default(cuid())
+  tenantId         String
+  companyId        String
+  title            String
+  department       String?
+  description      String   @db.Text
+  responsibilities String?  @db.Text
+  requirements     String?  @db.Text
+  competencies     String?  @db.Text
+  salaryRange      String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("job_descriptions")
+}
+
+// ─── Performance Evaluations ─────────────────────────────────────────────────
+
+model PerformanceEvaluation {
+  id                  String     @id @default(cuid())
+  tenantId            String
+  companyId           String
+  employeeName        String
+  employeePosition    String?
+  period              String
+  evaluatorName       String?
+  scoreProductivity   Int?
+  scoreQuality        Int?
+  scoreTeamwork       Int?
+  scoreInitiative     Int?
+  scorePunctuality    Int?
+  strengths           String?    @db.Text
+  areasForImprovement String?    @db.Text
+  goals               String?    @db.Text
+  status              EvalStatus @default(DRAFT)
+  evaluationDate      DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("performance_evaluations")
+}
+
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+model Employee {
+  id          String    @id @default(cuid())
+  tenantId    String
+  companyId   String
+  name        String
+  rut         String?
+  email       String?
+  phone       String?
+  position    String?
+  department  String?
+  reportsToId String?
+  startDate   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reportsTo Employee?         @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  reports   Employee[]        @relation("EmployeeHierarchy")
+  history   EmployeeHistory[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("employees")
+}
+
+// ─── Employee History ─────────────────────────────────────────────────────────
+
+model EmployeeHistory {
+  id          String     @id @default(cuid())
+  tenantId    String
+  employeeId  String
+  date        DateTime   @default(now())
+  changeType  ChangeType
+  description String?    @db.Text
+  createdAt   DateTime   @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("employee_history")
 }

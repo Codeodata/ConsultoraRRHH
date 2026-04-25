@@ -56,3 +56,21 @@ export function getRoleLabel(role: string): string {
   }
   return labels[role] ?? role
 }
+
+export function getChangeTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    PROMOTION: 'Promoción',
+    TRANSFER: 'Transferencia',
+    UPDATE: 'Actualización',
+  }
+  return labels[type] ?? type
+}
+
+export function getChangeTypeVariant(type: string): 'success' | 'info' | 'secondary' {
+  const map: Record<string, 'success' | 'info' | 'secondary'> = {
+    PROMOTION: 'success',
+    TRANSFER: 'info',
+    UPDATE: 'secondary',
+  }
+  return map[type] ?? 'secondary'
+}

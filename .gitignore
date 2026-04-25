@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Prisma
 prisma/migrations/dev.db
+
+# Binaries
+*.deb
+*.rpm
+*.exe

@@ -9,10 +9,12 @@ const RRHH_OR_ADMIN_ROUTES = [
   '/companies',
   '/services',
   '/documents',
+  '/employees',
   '/api/companies',
   '/api/services',
   '/api/documents',
   '/api/upload',
+  '/api/employees',
 ]
 
 export default auth(function middleware(req: NextRequest & { auth: any }) {

@@ -47,8 +47,70 @@ export const userSchema = z.object({
   companyId: z.string().optional().nullable(),
 })
 
+export const jobDescriptionSchema = z.object({
+  companyId: z.string().min(1, 'Empresa requerida'),
+  title: z.string().min(2, 'Título requerido'),
+  department: z.string().optional(),
+  description: z.string().min(10, 'Descripción requerida'),
+  responsibilities: z.string().optional(),
+  requirements: z.string().optional(),
+  competencies: z.string().optional(),
+  salaryRange: z.string().optional(),
+  isActive: z.boolean().optional(),
+})
+
+export const jobDescriptionUpdateSchema = jobDescriptionSchema.partial().omit({ companyId: true })
+
+const scoreField = z.number().min(1).max(5).optional().nullable()
+
+export const performanceEvalSchema = z.object({
+  companyId: z.string().min(1, 'Empresa requerida'),
+  employeeName: z.string().min(2, 'Nombre del empleado requerido'),
+  employeePosition: z.string().optional(),
+  period: z.string().min(1, 'Período requerido'),
+  evaluatorName: z.string().optional(),
+  scoreProductivity: scoreField,
+  scoreQuality: scoreField,
+  scoreTeamwork: scoreField,
+  scoreInitiative: scoreField,
+  scorePunctuality: scoreField,
+  strengths: z.string().optional(),
+  areasForImprovement: z.string().optional(),
+  goals: z.string().optional(),
+  status: z.enum(['DRAFT', 'COMPLETED', 'REVIEWED']).optional(),
+  evaluationDate: z.string().optional(),
+})
+
+export const performanceEvalUpdateSchema = performanceEvalSchema.partial().omit({ companyId: true })
+
+export const employeeSchema = z.object({
+  companyId: z.string().min(1, 'Empresa requerida'),
+  name: z.string().min(2, 'Nombre requerido'),
+  rut: z.string().optional(),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  position: z.string().optional(),
+  department: z.string().optional(),
+  reportsToId: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+})
+
+export const employeeUpdateSchema = employeeSchema.partial().omit({ companyId: true })
+
+export const employeeHistorySchema = z.object({
+  employeeId: z.string().min(1, 'Empleado requerido'),
+  changeType: z.enum(['PROMOTION', 'TRANSFER', 'UPDATE']),
+  description: z.string().optional(),
+  date: z.string().optional(),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type CompanyInput = z.infer<typeof companySchema>
 export type ServiceInput = z.infer<typeof serviceSchema>
 export type UserInput = z.infer<typeof userSchema>
+export type JobDescriptionInput = z.infer<typeof jobDescriptionSchema>
+export type PerformanceEvalInput = z.infer<typeof performanceEvalSchema>
+export type EmployeeInput = z.infer<typeof employeeSchema>
+export type EmployeeHistoryInput = z.infer<typeof employeeHistorySchema>
