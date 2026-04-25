@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: consultora_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-consultora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-consultora_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-consultora_saas}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-consultora}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: consultora_app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-consultora}:${POSTGRES_PASSWORD:-consultora_pass}@postgres:5432/${POSTGRES_DB:-consultora_saas}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-secret-key-min-32-chars-change-in-production-ok}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Consultora SaaS}
+      UPLOAD_DIR: /app/uploads
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-10}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: consultora_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@consultora.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  uploads_data:
