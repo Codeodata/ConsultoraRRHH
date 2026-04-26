@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import type { Metadata } from 'next'
 import { Plus, ChevronRight, Wrench } from 'lucide-react'
+import { DeleteButton } from '@/components/ui/delete-button'
 
 export const metadata: Metadata = { title: 'Detalle empresa' }
 
@@ -24,6 +25,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   const { id } = await params
   const session = await auth()
   const tenantId = session!.user.tenantId
+  const isSuperAdmin = session!.user.role === 'SUPER_ADMIN'
 
   const company = await db.company.findFirst({
     where: { id, tenantId },
@@ -48,12 +50,22 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-50">{company.name}</h2>
         </div>
-        <Button asChild>
-          <Link href={`/services/new?companyId=${company.id}`}>
-            <Plus size={15} />
-            Nuevo servicio
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button asChild>
+            <Link href={`/services/new?companyId=${company.id}`}>
+              <Plus size={15} />
+              Nuevo servicio
+            </Link>
+          </Button>
+          {isSuperAdmin && (
+            <DeleteButton
+              url={`/api/companies/${company.id}`}
+              confirmMessage={`¿Eliminar la empresa "${company.name}"? Se eliminarán todos sus servicios. Esta acción no se puede deshacer.`}
+              redirectTo="/companies"
+              label="Eliminar empresa"
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

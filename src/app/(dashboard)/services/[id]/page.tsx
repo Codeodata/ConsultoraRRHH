@@ -2,14 +2,16 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formatDate, formatFileSize, getStatusLabel } from '@/lib/utils'
+import { formatDate, getStatusLabel } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { ServiceStatusForm } from '@/components/services/service-status-form'
 import { DocumentUpload } from '@/components/documents/document-upload'
+import { ServiceDocList } from '@/components/services/service-doc-list'
 import type { Metadata } from 'next'
-import { ChevronRight, FileText, Download, CalendarDays } from 'lucide-react'
+import { ChevronRight, CalendarDays } from 'lucide-react'
+import { DeleteButton } from '@/components/ui/delete-button'
 
 export const metadata: Metadata = { title: 'Detalle servicio' }
 
@@ -54,9 +56,19 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </Link>
           </p>
         </div>
-        <Badge variant={getStatusVariant(service.status)} className="text-sm px-3 py-1">
-          {getStatusLabel(service.status)}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant={getStatusVariant(service.status)} className="text-sm px-3 py-1">
+            {getStatusLabel(service.status)}
+          </Badge>
+          {canEdit && (
+            <DeleteButton
+              url={`/api/services/${service.id}`}
+              confirmMessage={`¿Eliminar el servicio "${service.name}"? Esta acción no se puede deshacer.`}
+              redirectTo="/services"
+              label="Eliminar"
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -103,36 +115,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
 
-            {service.documents.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800">
-                  <FileText size={18} className="text-gray-400 dark:text-zinc-500" />
-                </div>
-                <p className="text-sm text-gray-400 dark:text-zinc-500">No hay documentos subidos aún</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
-                {service.documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-4 px-6 py-3.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 shrink-0">
-                      <FileText size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-zinc-100 truncate text-sm">{doc.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                        {formatFileSize(doc.fileSize)} · v{doc.version} · {formatDate(doc.createdAt)}
-                      </p>
-                    </div>
-                    <Button asChild variant="outline" size="sm">
-                      <a href={`/api/documents/${doc.id}/download`}>
-                        <Download size={13} />
-                        Descargar
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ServiceDocList docs={service.documents} />
           </div>
         </div>
 

@@ -157,12 +157,20 @@ export default async function EmployeeProfilePage({
 
         {/* C. Desempeño (tabs) */}
         <div className="lg:col-span-2">
-          <PerformanceTabs employeeId={employee.id} initialGoals={employee.goals} />
+          <PerformanceTabs
+            employeeId={employee.id}
+            initialGoals={employee.goals}
+            initialEvalDocs={employee.documents.filter((d) => d.category === 'EVALUATION')}
+            initialDevDocs={employee.documents.filter((d) => d.category === 'DEVELOPMENT')}
+          />
         </div>
       </div>
 
       {/* ── D. DOCUMENTACIÓN ── */}
-      <EmployeeDocManager employeeId={employee.id} initialDocuments={employee.documents} />
+      <EmployeeDocManager
+        employeeId={employee.id}
+        initialDocuments={employee.documents.filter((d) => d.category === 'GENERAL')}
+      />
 
       {/* ── E. HISTORIAL ── */}
       <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none p-5">

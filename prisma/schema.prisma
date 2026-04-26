@@ -39,6 +39,12 @@ enum GoalStatus {
   ARCHIVED
 }
 
+enum DocCategory {
+  GENERAL
+  EVALUATION
+  DEVELOPMENT
+}
+
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -306,7 +312,7 @@ model EmployeeGoal {
 // ─── Employee Documents ───────────────────────────────────────────────────────
 
 model EmployeeDocument {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   tenantId   String
   employeeId String
   name       String
@@ -314,8 +320,9 @@ model EmployeeDocument {
   filePath   String
   fileSize   Int
   mimeType   String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  category   DocCategory @default(GENERAL)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 

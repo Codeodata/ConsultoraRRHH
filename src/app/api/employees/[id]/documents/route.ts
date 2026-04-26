@@ -45,6 +45,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const relPath = path.join('uploads', session.user.tenantId, safeFileName)
 
+  const rawCategory = formData.get('category') as string | null
+  const validCategories = ['GENERAL', 'EVALUATION', 'DEVELOPMENT']
+  const category = validCategories.includes(rawCategory ?? '') ? rawCategory! : 'GENERAL'
+
   const document = await db.employeeDocument.create({
     data: {
       tenantId: session.user.tenantId,
@@ -54,6 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       filePath: relPath,
       fileSize: file.size,
       mimeType: file.type || 'application/octet-stream',
+      category: category as 'GENERAL' | 'EVALUATION' | 'DEVELOPMENT',
     },
   })
 
