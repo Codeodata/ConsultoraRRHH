@@ -2,12 +2,7 @@
 
 Al ingresar a `http://localhost:3000` serás redirigido al login. El seed cargó tres usuarios de prueba:
 
-| Rol | Email | Contraseña | Acceso |
-|-----|-------|-----------|--------|
-| Super Admin | admin@consultora.com | Admin1234! | Todo el sistema + gestión de usuarios |
-| RRHH | rrhh@consultora.com | Rrhh1234! | Empresas, servicios, documentos |
-| Cliente | cliente@acme.cl | Client1234! | Solo su portal de empresa |
-
+c
 ---
 
 ## Cómo usar el sistema

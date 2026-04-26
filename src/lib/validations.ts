@@ -88,15 +88,28 @@ export const employeeSchema = z.object({
   name: z.string().min(2, 'Nombre requerido'),
   rut: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
+  personalEmail: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional(),
   position: z.string().optional(),
   department: z.string().optional(),
   reportsToId: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
+  birthDate: z.string().nullable().optional(),
+  address: z.string().optional(),
+  gender: z.string().optional(),
   isActive: z.boolean().optional(),
 })
 
 export const employeeUpdateSchema = employeeSchema.partial().omit({ companyId: true })
+
+export const employeeGoalSchema = z.object({
+  name: z.string().min(2, 'Nombre requerido'),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  status: z.enum(['ACTIVE', 'CLOSED', 'ARCHIVED']).optional(),
+})
+
+export const employeeGoalUpdateSchema = employeeGoalSchema.partial()
 
 export const employeeHistorySchema = z.object({
   employeeId: z.string().min(1, 'Empleado requerido'),

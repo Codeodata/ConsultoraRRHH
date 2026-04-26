@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
   }
 
-  const { startDate, reportsToId, isActive, ...rest } = parsed.data
+  const { startDate, birthDate, reportsToId, isActive, ...rest } = parsed.data
 
   const updated = await db.employee.update({
     where: { id },
@@ -51,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...rest,
       ...(reportsToId !== undefined ? { reportsToId: reportsToId || null } : {}),
       ...(startDate !== undefined ? { startDate: startDate ? new Date(startDate) : null } : {}),
+      ...(birthDate !== undefined ? { birthDate: birthDate ? new Date(birthDate) : null } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
     },
   })

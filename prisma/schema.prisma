@@ -33,6 +33,12 @@ enum ChangeType {
   UPDATE
 }
 
+enum GoalStatus {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -246,29 +252,76 @@ model PerformanceEvaluation {
 // ─── Employees ───────────────────────────────────────────────────────────────
 
 model Employee {
-  id          String    @id @default(cuid())
-  tenantId    String
-  companyId   String
-  name        String
-  rut         String?
-  email       String?
-  phone       String?
-  position    String?
-  department  String?
-  reportsToId String?
-  startDate   DateTime?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  tenantId      String
+  companyId     String
+  name          String
+  rut           String?
+  email         String?
+  personalEmail String?
+  phone         String?
+  position      String?
+  department    String?
+  reportsToId   String?
+  startDate     DateTime?
+  birthDate     DateTime?
+  address       String?
+  gender        String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  reportsTo Employee?         @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
-  reports   Employee[]        @relation("EmployeeHierarchy")
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reportsTo Employee?          @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  reports   Employee[]         @relation("EmployeeHierarchy")
   history   EmployeeHistory[]
+  goals     EmployeeGoal[]
+  documents EmployeeDocument[]
 
   @@index([tenantId])
   @@index([companyId])
   @@map("employees")
+}
+
+// ─── Employee Goals ───────────────────────────────────────────────────────────
+
+model EmployeeGoal {
+  id         String     @id @default(cuid())
+  tenantId   String
+  employeeId String
+  name       String
+  startDate  DateTime?
+  endDate    DateTime?
+  status     GoalStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("employee_goals")
+}
+
+// ─── Employee Documents ───────────────────────────────────────────────────────
+
+model EmployeeDocument {
+  id         String   @id @default(cuid())
+  tenantId   String
+  employeeId String
+  name       String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("employee_documents")
 }
 
 // ─── Employee History ─────────────────────────────────────────────────────────

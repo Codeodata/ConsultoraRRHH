@@ -35,12 +35,16 @@ interface EmployeeFormProps {
     name: string
     rut: string | null
     email: string | null
+    personalEmail: string | null
     phone: string | null
     position: string | null
     department: string | null
     companyId: string
     reportsToId: string | null
     startDate: Date | null
+    birthDate: Date | null
+    address: string | null
+    gender: string | null
     isActive: boolean
   }
 }
@@ -64,13 +68,17 @@ export function EmployeeForm({ companies, employees, employee }: EmployeeFormPro
     const body = {
       companyId: fd.get('companyId') as string,
       name: fd.get('name') as string,
-      rut: fd.get('rut') as string || undefined,
-      email: fd.get('email') as string || undefined,
-      phone: fd.get('phone') as string || undefined,
-      position: fd.get('position') as string || undefined,
-      department: fd.get('department') as string || undefined,
+      rut: (fd.get('rut') as string) || undefined,
+      email: (fd.get('email') as string) || undefined,
+      personalEmail: (fd.get('personalEmail') as string) || undefined,
+      phone: (fd.get('phone') as string) || undefined,
+      position: (fd.get('position') as string) || undefined,
+      department: (fd.get('department') as string) || undefined,
       reportsToId: (fd.get('reportsToId') as string) || null,
       startDate: (fd.get('startDate') as string) || null,
+      birthDate: (fd.get('birthDate') as string) || null,
+      address: (fd.get('address') as string) || undefined,
+      gender: (fd.get('gender') as string) || undefined,
       isActive: fd.get('isActive') === 'true',
     }
 
@@ -101,6 +109,10 @@ export function EmployeeForm({ companies, employees, employee }: EmployeeFormPro
 
   const startDateValue = employee?.startDate
     ? new Date(employee.startDate).toISOString().split('T')[0]
+    : ''
+
+  const birthDateValue = employee?.birthDate
+    ? new Date(employee.birthDate).toISOString().split('T')[0]
     : ''
 
   return (
@@ -137,13 +149,44 @@ export function EmployeeForm({ companies, employees, employee }: EmployeeFormPro
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Correo laboral</Label>
           <Input id="email" name="email" type="email" defaultValue={employee?.email ?? ''} placeholder="juan@empresa.cl" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="personalEmail">Correo personal</Label>
+          <Input id="personalEmail" name="personalEmail" type="email" defaultValue={employee?.personalEmail ?? ''} placeholder="juan@gmail.com" />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="phone">Teléfono</Label>
           <Input id="phone" name="phone" defaultValue={employee?.phone ?? ''} placeholder="+56 9 1234 5678" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="birthDate">Fecha de nacimiento</Label>
+          <Input id="birthDate" name="birthDate" type="date" defaultValue={birthDateValue} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="gender">Género</Label>
+          <select
+            id="gender"
+            name="gender"
+            defaultValue={employee?.gender ?? ''}
+            className={selectClass}
+          >
+            <option value="">Sin especificar</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="No binario">No binario</option>
+            <option value="Prefiero no decir">Prefiero no decir</option>
+          </select>
+        </div>
+
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="address">Lugar de residencia</Label>
+          <Input id="address" name="address" defaultValue={employee?.address ?? ''} placeholder="Santiago, Chile" />
         </div>
 
         <div className="space-y-1.5">

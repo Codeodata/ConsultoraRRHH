@@ -17,9 +17,10 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     db.employee.findFirst({
       where: { id, tenantId },
       select: {
-        id: true, name: true, rut: true, email: true, phone: true,
-        position: true, department: true, companyId: true,
-        reportsToId: true, startDate: true, isActive: true,
+        id: true, name: true, rut: true, email: true, personalEmail: true,
+        phone: true, position: true, department: true, companyId: true,
+        reportsToId: true, startDate: true, birthDate: true, address: true,
+        gender: true, isActive: true,
       },
     }),
     db.company.findMany({
