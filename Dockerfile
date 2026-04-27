@@ -5,7 +5,9 @@ RUN apk add --no-cache libc6-compat openssl
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+COPY prisma/schema.prisma ./prisma/schema.prisma
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+RUN npm ci && npx prisma generate
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 FROM base AS builder
@@ -13,10 +15,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN mkdir -p public
-# Placeholder URL: prisma generate only reads the schema, not the DB
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx prisma generate
 RUN npm run build
 
 # ── Runner ────────────────────────────────────────────────────────────────────

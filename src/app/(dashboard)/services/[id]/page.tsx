@@ -4,11 +4,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, getStatusLabel } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { ServiceStatusForm } from '@/components/services/service-status-form'
 import { DocumentUpload } from '@/components/documents/document-upload'
 import { ServiceDocList } from '@/components/services/service-doc-list'
+import { ServiceTaskList } from '@/components/services/service-task-list'
 import type { Metadata } from 'next'
 import { ChevronRight, CalendarDays } from 'lucide-react'
 import { DeleteButton } from '@/components/ui/delete-button'
@@ -30,13 +30,24 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   const tenantId = session!.user.tenantId
   const canEdit = session!.user.role !== 'CLIENT'
 
-  const service = await db.service.findFirst({
-    where: { id, tenantId },
-    include: {
-      company: { select: { id: true, name: true } },
-      documents: { orderBy: { createdAt: 'desc' } },
-    },
-  })
+  const [service, rrhhUsers] = await Promise.all([
+    db.service.findFirst({
+      where: { id, tenantId },
+      include: {
+        company: { select: { id: true, name: true } },
+        documents: { orderBy: { createdAt: 'desc' } },
+        tasks: {
+          orderBy: { createdAt: 'asc' },
+          include: { assignedUser: { select: { id: true, name: true, email: true } } },
+        },
+      },
+    }),
+    db.user.findMany({
+      where: { tenantId, role: { in: ['SUPER_ADMIN', 'RRHH'] }, isActive: true },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
+    }),
+  ])
 
   if (!service) notFound()
 
@@ -100,6 +111,16 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
           </div>
+
+          <ServiceTaskList
+            serviceId={service.id}
+            tasks={service.tasks.map((t) => ({
+              ...t,
+              dueDate: t.dueDate?.toISOString() ?? null,
+            }))}
+            rrhhUsers={rrhhUsers}
+            canEdit={canEdit}
+          />
 
           <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none overflow-hidden">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 px-6 py-4">

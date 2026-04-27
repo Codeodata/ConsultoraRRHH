@@ -8,6 +8,18 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Detalle servicio' }
 
+const taskStatusLabel: Record<string, string> = {
+  PENDING: 'Pendiente',
+  IN_PROGRESS: 'En proceso',
+  COMPLETED: 'Completada',
+}
+
+const taskStatusColor: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  COMPLETED: 'bg-green-100 text-green-700',
+}
+
 export default async function PortalServicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await auth()
@@ -21,6 +33,10 @@ export default async function PortalServicePage({ params }: { params: Promise<{ 
     },
     include: {
       documents: { orderBy: { createdAt: 'desc' } },
+      tasks: {
+        orderBy: { createdAt: 'asc' },
+        include: { assignedUser: { select: { id: true, name: true, email: true } } },
+      },
     },
   })
 
@@ -65,6 +81,47 @@ export default async function PortalServicePage({ params }: { params: Promise<{ 
             <p className="font-medium">{formatDate(service.endDate)}</p>
           </div>
         </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="border-b border-gray-100 px-6 py-4">
+          <h3 className="font-semibold text-gray-900">
+            Tareas ({service.tasks.length})
+          </h3>
+        </div>
+
+        {service.tasks.length === 0 ? (
+          <div className="px-6 py-12 text-center text-sm text-gray-400">
+            No hay tareas registradas aún
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {service.tasks.map((task) => (
+              <div key={task.id} className="flex items-start gap-4 px-6 py-4">
+                <span className="text-xl mt-0.5">✅</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-gray-900">{task.title}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${taskStatusColor[task.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {taskStatusLabel[task.status] ?? task.status}
+                    </span>
+                  </div>
+                  {task.description && (
+                    <p className="text-sm text-gray-500 mt-0.5">{task.description}</p>
+                  )}
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-400 flex-wrap">
+                    {task.assignedUser && (
+                      <span>Responsable: <span className="text-gray-600">{task.assignedUser.name ?? task.assignedUser.email}</span></span>
+                    )}
+                    {task.dueDate && (
+                      <span>Vence: <span className="text-gray-600">{formatDate(task.dueDate)}</span></span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card overflow-hidden">

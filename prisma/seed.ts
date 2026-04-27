@@ -4,6 +4,12 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  const existing = await prisma.tenant.findFirst()
+  if (existing) {
+    console.log('⏭️  Database already seeded, skipping.')
+    return
+  }
+
   console.log('🌱 Seeding database...')
 
   // ── 1. Tenant demo ──────────────────────────────────────────────────────────
@@ -72,7 +78,7 @@ async function main() {
   const clientPassword = await bcrypt.hash('Client1234!', 12)
   const clientUser = await prisma.user.upsert({
     where: { email: 'cliente@acme.cl' },
-    update: {},
+    update: { companyId: company.id },
     create: {
       tenantId: tenant.id,
       name: 'Carlos Rodríguez',

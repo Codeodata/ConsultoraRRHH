@@ -10,6 +10,7 @@ import {
   FileText,
   Users,
   UserSquare2,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -23,6 +24,7 @@ const adminNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/companies', label: 'Empresas', icon: Building2 },
   { href: '/services', label: 'Servicios', icon: Wrench },
+  { href: '/tasks', label: 'Tareas', icon: ClipboardList },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
   { href: '/users', label: 'Usuarios', icon: Users },
@@ -32,6 +34,7 @@ const rrhhNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/companies', label: 'Empresas', icon: Building2 },
   { href: '/services', label: 'Servicios', icon: Wrench },
+  { href: '/tasks', label: 'Tareas', icon: ClipboardList },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
 ]

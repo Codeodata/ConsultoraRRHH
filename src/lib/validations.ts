@@ -111,6 +111,16 @@ export const employeeGoalSchema = z.object({
 
 export const employeeGoalUpdateSchema = employeeGoalSchema.partial()
 
+export const serviceTaskSchema = z.object({
+  title: z.string().min(2, 'Título requerido'),
+  description: z.string().optional(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  assignedUserId: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+})
+
+export const serviceTaskUpdateSchema = serviceTaskSchema.partial()
+
 export const employeeHistorySchema = z.object({
   employeeId: z.string().min(1, 'Empleado requerido'),
   changeType: z.enum(['PROMOTION', 'TRANSFER', 'UPDATE']),

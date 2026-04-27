@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -37,6 +38,12 @@ enum GoalStatus {
   ACTIVE
   CLOSED
   ARCHIVED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum DocCategory {
@@ -77,10 +84,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company  Company?  @relation(fields: [companyId], references: [id])
-  accounts Account[]
-  sessions Session[]
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company       Company?      @relation(fields: [companyId], references: [id])
+  accounts      Account[]
+  sessions      Session[]
+  assignedTasks ServiceTask[]
 
   @@index([tenantId])
   @@index([email])
@@ -170,8 +178,9 @@ model Service {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   documents Document[]
+  tasks     ServiceTask[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -199,6 +208,28 @@ model Document {
   @@index([tenantId])
   @@index([serviceId])
   @@map("documents")
+}
+
+// ─── Service Tasks ────────────────────────────────────────────────────────────
+
+model ServiceTask {
+  id             String     @id @default(cuid())
+  tenantId       String
+  serviceId      String
+  title          String
+  description    String?    @db.Text
+  status         TaskStatus @default(PENDING)
+  assignedUserId String?
+  dueDate        DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  service      Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  assignedUser User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([serviceId])
+  @@map("service_tasks")
 }
 
 // ─── Job Descriptions ────────────────────────────────────────────────────────

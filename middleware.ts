@@ -8,6 +8,7 @@ const ADMIN_ROUTES = ['/users', '/api/users']
 const RRHH_OR_ADMIN_ROUTES = [
   '/companies',
   '/services',
+  '/tasks',
   '/documents',
   '/employees',
   '/api/companies',
