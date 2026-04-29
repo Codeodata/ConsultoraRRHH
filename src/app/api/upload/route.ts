@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import fs from 'fs'
-import path from 'path'
-
-function getUploadDir(tenantId: string): string {
-  const dir = path.join(process.cwd(), 'uploads', tenantId)
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  return dir
-}
+import { uploadFile } from '@/lib/storage'
 
 const MAX_SIZE_BYTES = (Number(process.env.MAX_FILE_SIZE_MB) || 10) * 1024 * 1024
 
@@ -43,15 +36,13 @@ export async function POST(req: NextRequest) {
 
   const existingVersionCount = await db.document.count({ where: { serviceId, name } })
 
-  const uploadDir = getUploadDir(session.user.tenantId)
-  const ext = path.extname(file.name)
-  const safeFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-  const filePath = path.join(uploadDir, safeFileName)
-
   const bytes = await file.arrayBuffer()
-  fs.writeFileSync(filePath, Buffer.from(bytes))
-
-  const relPath = path.join('uploads', session.user.tenantId, safeFileName)
+  const storagePath = await uploadFile(
+    session.user.tenantId,
+    file.name,
+    Buffer.from(bytes),
+    file.type || 'application/octet-stream',
+  )
 
   const document = await db.document.create({
     data: {
@@ -60,7 +51,7 @@ export async function POST(req: NextRequest) {
       name,
       description: description || undefined,
       fileName: file.name,
-      filePath: relPath,
+      filePath: storagePath,
       fileSize: file.size,
       mimeType: file.type || 'application/octet-stream',
       version: existingVersionCount + 1,

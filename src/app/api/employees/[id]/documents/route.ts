@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import fs from 'fs'
-import path from 'path'
-
-function getUploadDir(tenantId: string): string {
-  const dir = path.join(process.cwd(), 'uploads', tenantId)
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  return dir
-}
+import { uploadFile } from '@/lib/storage'
 
 const MAX_SIZE_BYTES = (Number(process.env.MAX_FILE_SIZE_MB) || 10) * 1024 * 1024
 
@@ -36,14 +29,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     )
   }
 
-  const uploadDir = getUploadDir(session.user.tenantId)
-  const safeFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-  const filePath = path.join(uploadDir, safeFileName)
-
   const bytes = await file.arrayBuffer()
-  fs.writeFileSync(filePath, Buffer.from(bytes))
-
-  const relPath = path.join('uploads', session.user.tenantId, safeFileName)
+  const storagePath = await uploadFile(
+    session.user.tenantId,
+    file.name,
+    Buffer.from(bytes),
+    file.type || 'application/octet-stream',
+  )
 
   const rawCategory = formData.get('category') as string | null
   const validCategories = ['GENERAL', 'EVALUATION', 'DEVELOPMENT']
@@ -55,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       employeeId: id,
       name: name || file.name,
       fileName: file.name,
-      filePath: relPath,
+      filePath: storagePath,
       fileSize: file.size,
       mimeType: file.type || 'application/octet-stream',
       category: category as 'GENERAL' | 'EVALUATION' | 'DEVELOPMENT',

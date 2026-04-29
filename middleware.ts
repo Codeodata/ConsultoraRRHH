@@ -2,9 +2,9 @@ import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/login', '/register', '/api/auth']
+const PUBLIC_ROUTES = ['/login', '/register', '/api/auth', '/api/billing/webhook']
 
-const ADMIN_ROUTES = ['/users', '/api/users']
+const ADMIN_ROUTES = ['/users', '/api/users', '/billing', '/api/billing']
 const RRHH_OR_ADMIN_ROUTES = [
   '/companies',
   '/services',

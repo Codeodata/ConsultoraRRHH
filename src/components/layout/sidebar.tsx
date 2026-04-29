@@ -11,6 +11,8 @@ import {
   Users,
   UserSquare2,
   ClipboardList,
+  CreditCard,
+  GitPullRequestArrow,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -27,7 +29,9 @@ const adminNav: NavItem[] = [
   { href: '/tasks', label: 'Tareas', icon: ClipboardList },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
+  { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow },
   { href: '/users', label: 'Usuarios', icon: Users },
+  { href: '/billing', label: 'Facturación', icon: CreditCard },
 ]
 
 const rrhhNav: NavItem[] = [
@@ -37,6 +41,7 @@ const rrhhNav: NavItem[] = [
   { href: '/tasks', label: 'Tareas', icon: ClipboardList },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
+  { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow },
 ]
 
 interface SidebarProps {

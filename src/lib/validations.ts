@@ -128,6 +128,61 @@ export const employeeHistorySchema = z.object({
   date: z.string().optional(),
 })
 
+export const processSchema = z.object({
+  companyId: z.string().min(1, 'Empresa requerida'),
+  positionTitle: z.string().min(2, 'Puesto requerido'),
+  department: z.string().optional(),
+  notes: z.string().optional(),
+  openedAt: z.string().optional(),
+})
+
+export const processUpdateSchema = z.object({
+  positionTitle: z.string().min(2).optional(),
+  department: z.string().optional(),
+  stage: z.enum(['RECLUTAMIENTO', 'SELECCION', 'PRE_INGRESO', 'ALTA_LEGAJO', 'ONBOARDING', 'SEGUIMIENTO']).optional(),
+  status: z.enum(['ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED']).optional(),
+  notes: z.string().optional(),
+  employeeId: z.string().nullable().optional(),
+  closedAt: z.string().nullable().optional(),
+})
+
+export const candidateSchema = z.object({
+  name: z.string().min(2, 'Nombre requerido'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  notes: z.string().optional(),
+})
+
+export const candidateUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional(),
+  status: z.enum(['RECIBIDO', 'FILTRADO', 'PRESELECCIONADO', 'ENTREVISTADO', 'SELECCIONADO', 'RECHAZADO']).optional(),
+  interviewDate: z.string().nullable().optional(),
+  interviewNotes: z.string().optional(),
+  evaluationScore: z.number().min(1).max(10).nullable().optional(),
+  evaluationNotes: z.string().optional(),
+  medicalExamDate: z.string().nullable().optional(),
+  medicalExamExpiry: z.string().nullable().optional(),
+  medicalExamResult: z.string().optional(),
+  validationsOk: z.boolean().optional(),
+  isSelected: z.boolean().optional(),
+  rejectionReason: z.string().optional(),
+  notes: z.string().optional(),
+})
+
+export const onboardingTaskSchema = z.object({
+  title: z.string().min(2, 'Título requerido'),
+  description: z.string().optional(),
+  category: z.enum(['INDUCCION', 'CAPACITACION']).default('INDUCCION'),
+  dueDate: z.string().nullable().optional(),
+  notes: z.string().optional(),
+})
+
+export const onboardingTaskUpdateSchema = onboardingTaskSchema.partial().extend({
+  completedAt: z.string().nullable().optional(),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type CompanyInput = z.infer<typeof companySchema>

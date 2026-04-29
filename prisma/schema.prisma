@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -52,6 +53,45 @@ enum DocCategory {
   DEVELOPMENT
 }
 
+enum ProcessStage {
+  RECLUTAMIENTO
+  SELECCION
+  PRE_INGRESO
+  ALTA_LEGAJO
+  ONBOARDING
+  SEGUIMIENTO
+}
+
+enum ProcessStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum CandidateStatus {
+  RECIBIDO
+  FILTRADO
+  PRESELECCIONADO
+  ENTREVISTADO
+  SELECCIONADO
+  RECHAZADO
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+enum PlanTier {
+  STARTER
+  PRO
+  BUSINESS
+}
+
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
 model Tenant {
@@ -62,8 +102,9 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  companies Company[]
+  users        User[]
+  companies    Company[]
+  subscription Subscription?
 
   @@map("tenants")
 }
@@ -153,11 +194,12 @@ model Company {
   updatedAt   DateTime @updatedAt
 
   tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  services         Service[]
-  users            User[]
-  employees        Employee[]
-  jobDescriptions  JobDescription[]
-  performanceEvals PerformanceEvaluation[]
+  services             Service[]
+  users                User[]
+  employees            Employee[]
+  jobDescriptions      JobDescription[]
+  performanceEvals     PerformanceEvaluation[]
+  recruitmentProcesses RecruitmentProcess[]
 
   @@index([tenantId])
   @@map("companies")
@@ -308,12 +350,13 @@ model Employee {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  reportsTo Employee?          @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
-  reports   Employee[]         @relation("EmployeeHierarchy")
-  history   EmployeeHistory[]
-  goals     EmployeeGoal[]
-  documents EmployeeDocument[]
+  company              Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reportsTo            Employee?            @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  reports              Employee[]           @relation("EmployeeHierarchy")
+  history              EmployeeHistory[]
+  goals                EmployeeGoal[]
+  documents            EmployeeDocument[]
+  recruitmentProcesses RecruitmentProcess[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -378,4 +421,121 @@ model EmployeeHistory {
   @@index([tenantId])
   @@index([employeeId])
   @@map("employee_history")
+}
+
+// ─── Recruitment Processes ────────────────────────────────────────────────────
+
+model RecruitmentProcess {
+  id            String        @id @default(cuid())
+  tenantId      String
+  companyId     String
+  positionTitle String
+  department    String?
+  stage         ProcessStage  @default(RECLUTAMIENTO)
+  status        ProcessStatus @default(ACTIVE)
+  openedAt      DateTime      @default(now())
+  closedAt      DateTime?
+  notes         String?       @db.Text
+  employeeId    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  company         Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee        Employee?               @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  candidates      ProcessCandidate[]
+  onboardingTasks ProcessOnboardingTask[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("recruitment_processes")
+}
+
+model ProcessCandidate {
+  id          String          @id @default(cuid())
+  tenantId    String
+  processId   String
+  name        String
+  email       String?
+  phone       String?
+  cvFileName  String?
+  cvFilePath  String?
+  status      CandidateStatus @default(RECIBIDO)
+
+  interviewDate     DateTime?
+  interviewNotes    String?   @db.Text
+  evaluationScore   Int?
+  evaluationNotes   String?   @db.Text
+
+  medicalExamDate   DateTime?
+  medicalExamExpiry DateTime?
+  medicalExamResult String?
+  validationsOk     Boolean   @default(false)
+
+  isSelected      Boolean  @default(false)
+  rejectionReason String?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  process RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([processId])
+  @@map("process_candidates")
+}
+
+model ProcessOnboardingTask {
+  id          String    @id @default(cuid())
+  tenantId    String
+  processId   String
+  title       String
+  description String?
+  category    String    @default("INDUCCION")
+  dueDate     DateTime?
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  process RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([processId])
+  @@map("process_onboarding_tasks")
+}
+
+// ─── Billing ─────────────────────────────────────────────────────────────────
+
+model Subscription {
+  id               String             @id @default(cuid())
+  tenantId         String             @unique
+  planTier         PlanTier           @default(STARTER)
+  status           SubscriptionStatus @default(TRIAL)
+  mpPreapprovalId  String?            @unique
+  currentPeriodEnd DateTime?
+  trialEndsAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments PaymentRecord[]
+
+  @@map("subscriptions")
+}
+
+model PaymentRecord {
+  id             String    @id @default(cuid())
+  subscriptionId String
+  mpPaymentId    String?   @unique
+  amount         Float
+  currency       String    @default("CLP")
+  status         String
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("payment_records")
 }
