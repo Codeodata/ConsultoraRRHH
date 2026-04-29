@@ -16,19 +16,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials)
-        if (!parsed.success) return null
+        if (!parsed.success) {
+          console.error('[auth] schema parse failed:', parsed.error)
+          return null
+        }
 
         const { email, password } = parsed.data
 
-        const user = await db.user.findUnique({
-          where: { email },
-          include: { tenant: true },
-        })
+        let user
+        try {
+          user = await db.user.findUnique({
+            where: { email },
+            include: { tenant: true },
+          })
+        } catch (e) {
+          console.error('[auth] db error:', e)
+          return null
+        }
 
-        if (!user || !user.password || !user.isActive) return null
+        if (!user || !user.password || !user.isActive) {
+          console.error('[auth] user not found or inactive:', { email, found: !!user })
+          return null
+        }
 
         const passwordMatch = await bcrypt.compare(password, user.password)
-        if (!passwordMatch) return null
+        if (!passwordMatch) {
+          console.error('[auth] password mismatch for:', email)
+          return null
+        }
 
         return {
           id: user.id,
