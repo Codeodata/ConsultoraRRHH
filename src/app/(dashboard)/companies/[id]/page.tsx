@@ -6,6 +6,7 @@ import { formatDate, getStatusLabel } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { DashboardCharts } from '@/components/dashboard/charts'
 import type { Metadata } from 'next'
 import { Plus, ChevronRight, Wrench } from 'lucide-react'
 import { DeleteButton } from '@/components/ui/delete-button'
@@ -31,13 +32,25 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     where: { id, tenantId },
     include: {
       services: {
-        include: { _count: { select: { documents: true } } },
+        include: {
+          _count: { select: { documents: true } },
+          tasks: { select: { status: true } },
+        },
         orderBy: { createdAt: 'desc' },
       },
     },
   })
 
   if (!company) notFound()
+
+  const allTasks = company.services.flatMap((s) => s.tasks)
+  const tasksPending    = allTasks.filter((t) => t.status === 'PENDING').length
+  const tasksInProgress = allTasks.filter((t) => t.status === 'IN_PROGRESS').length
+  const tasksCompleted  = allTasks.filter((t) => t.status === 'COMPLETED').length
+
+  const svcPending    = company.services.filter((s) => s.status === 'PENDING').length
+  const svcInProgress = company.services.filter((s) => s.status === 'IN_PROGRESS').length
+  const svcCompleted  = company.services.filter((s) => s.status === 'COMPLETED').length
 
   return (
     <div className="p-6 space-y-6">
@@ -92,20 +105,25 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
           <h3 className="font-semibold text-gray-900 dark:text-zinc-50 text-sm mb-4">Resumen de servicios</h3>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { status: 'PENDING', textColor: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
-              { status: 'IN_PROGRESS', textColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/10' },
-              { status: 'COMPLETED', textColor: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/10' },
-            ].map(({ status, textColor, bg }) => {
-              const count = company.services.filter((s) => s.status === status).length
-              return (
-                <div key={status} className={`rounded-lg ${bg} p-3 text-center`}>
-                  <div className={`text-2xl font-bold ${textColor}`}>{count}</div>
-                  <div className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{getStatusLabel(status)}</div>
-                </div>
-              )
-            })}
+              { status: 'PENDING', count: svcPending, textColor: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
+              { status: 'IN_PROGRESS', count: svcInProgress, textColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+              { status: 'COMPLETED', count: svcCompleted, textColor: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/10' },
+            ].map(({ status, count, textColor, bg }) => (
+              <div key={status} className={`rounded-lg ${bg} p-3 text-center`}>
+                <div className={`text-2xl font-bold ${textColor}`}>{count}</div>
+                <div className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{getStatusLabel(status)}</div>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-50 mb-4">Análisis</h3>
+        <DashboardCharts
+          services={{ pending: svcPending, inProgress: svcInProgress, completed: svcCompleted }}
+          tasks={{ pending: tasksPending, inProgress: tasksInProgress, completed: tasksCompleted }}
+        />
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none overflow-hidden">

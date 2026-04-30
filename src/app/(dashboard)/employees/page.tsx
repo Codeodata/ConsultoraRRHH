@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EmployeesTable } from '@/components/employees/employees-table'
+import { EmployeeCharts } from '@/components/employees/employee-charts'
 import type { Metadata } from 'next'
 import { Plus, Users, GitBranch } from 'lucide-react'
 
@@ -23,6 +24,16 @@ export default async function EmployeesPage() {
   })
 
   const active = employees.filter((e) => e.isActive).length
+  const inactive = employees.length - active
+
+  const deptMap = new Map<string, number>()
+  for (const emp of employees) {
+    const key = emp.department ?? ''
+    deptMap.set(key, (deptMap.get(key) ?? 0) + 1)
+  }
+  const byDepartment = Array.from(deptMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
 
   return (
     <div className="p-6 space-y-6">
@@ -48,6 +59,8 @@ export default async function EmployeesPage() {
           </Button>
         </div>
       </div>
+
+      <EmployeeCharts active={active} inactive={inactive} byDepartment={byDepartment} />
 
       <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none overflow-hidden">
         {employees.length === 0 ? (
