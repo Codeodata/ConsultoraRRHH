@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { StatCard } from '@/components/ui/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { getStatusLabel, formatDate } from '@/lib/utils'
+import { DashboardCharts } from '@/components/dashboard/charts'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Building2, Wrench, Clock, CheckCircle2, ArrowRight } from 'lucide-react'
@@ -22,20 +23,32 @@ export default async function DashboardPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
 
-  const [totalCompanies, totalServices, servicesInProgress, servicesCompleted, servicesPending, recentServices] =
-    await Promise.all([
-      db.company.count({ where: { tenantId } }),
-      db.service.count({ where: { tenantId } }),
-      db.service.count({ where: { tenantId, status: 'IN_PROGRESS' } }),
-      db.service.count({ where: { tenantId, status: 'COMPLETED' } }),
-      db.service.count({ where: { tenantId, status: 'PENDING' } }),
-      db.service.findMany({
-        where: { tenantId },
-        include: { company: { select: { name: true } } },
-        orderBy: { updatedAt: 'desc' },
-        take: 5,
-      }),
-    ])
+  const [
+    totalCompanies,
+    totalServices,
+    servicesInProgress,
+    servicesCompleted,
+    servicesPending,
+    tasksPending,
+    tasksInProgress,
+    tasksCompleted,
+    recentServices,
+  ] = await Promise.all([
+    db.company.count({ where: { tenantId } }),
+    db.service.count({ where: { tenantId } }),
+    db.service.count({ where: { tenantId, status: 'IN_PROGRESS' } }),
+    db.service.count({ where: { tenantId, status: 'COMPLETED' } }),
+    db.service.count({ where: { tenantId, status: 'PENDING' } }),
+    db.serviceTask.count({ where: { tenantId, status: 'PENDING' } }),
+    db.serviceTask.count({ where: { tenantId, status: 'IN_PROGRESS' } }),
+    db.serviceTask.count({ where: { tenantId, status: 'COMPLETED' } }),
+    db.service.findMany({
+      where: { tenantId },
+      include: { company: { select: { name: true } } },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    }),
+  ])
 
   const completionRate = totalServices > 0 ? Math.round((servicesCompleted / totalServices) * 100) : 0
 
@@ -131,29 +144,13 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Distribución de estados */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {[
-          { label: 'Pendientes', value: servicesPending, barColor: 'bg-yellow-400', textColor: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/10' },
-          { label: 'En proceso', value: servicesInProgress, barColor: 'bg-blue-400', textColor: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/10' },
-          { label: 'Finalizados', value: servicesCompleted, barColor: 'bg-green-400', textColor: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-900/10' },
-        ].map(({ label, value, barColor, textColor, bgColor }) => (
-          <div key={label} className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm dark:shadow-none">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-600 dark:text-zinc-300">{label}</span>
-              <span className={`text-2xl font-bold ${textColor}`}>{value}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-gray-100 dark:bg-zinc-700">
-              <div
-                className={`h-full rounded-full ${barColor} transition-all`}
-                style={{ width: totalServices ? `${(value / totalServices) * 100}%` : '0%' }}
-              />
-            </div>
-            <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
-              {totalServices ? Math.round((value / totalServices) * 100) : 0}% del total
-            </p>
-          </div>
-        ))}
+      {/* Gráficos */}
+      <div>
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-50 mb-4">Análisis</h3>
+        <DashboardCharts
+          services={{ pending: servicesPending, inProgress: servicesInProgress, completed: servicesCompleted }}
+          tasks={{ pending: tasksPending, inProgress: tasksInProgress, completed: tasksCompleted }}
+        />
       </div>
     </div>
   )

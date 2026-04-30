@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getStatusLabel } from '@/lib/utils'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { PortalTaskList } from '@/components/portal/task-list-with-rating'
 import {
   Wrench,
   GitPullRequestArrow,
@@ -17,6 +18,7 @@ import {
   ListTodo,
   Layers,
   CircleCheck,
+  Users,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -93,12 +95,17 @@ export default async function PortalPage() {
         orderBy: { updatedAt: 'desc' },
         take: 6,
       },
+      employees: {
+        where: { isActive: true },
+        select: { id: true, name: true, position: true, department: true, email: true },
+        orderBy: { name: 'asc' },
+      },
     },
   })
 
   if (!company) redirect('/login')
 
-  const { services, recruitmentProcesses } = company
+  const { services, recruitmentProcesses, employees } = company
 
   const svcPending    = services.filter((s) => s.status === 'PENDING').length
   const svcInProgress = services.filter((s) => s.status === 'IN_PROGRESS').length
@@ -272,38 +279,17 @@ export default async function PortalPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-              {recentTasks.length === 0 ? (
-                <div className="px-5 py-10 text-center">
-                  <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 dark:bg-zinc-800">
-                    <ListTodo size={16} className="text-gray-400 dark:text-zinc-500" />
-                  </div>
-                  <p className="text-sm text-gray-400 dark:text-zinc-500">Sin tareas registradas</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-zinc-800">
-                  {recentTasks.map((task) => {
-                    const tc = TASK_STATUS_CONFIG[task.status as keyof typeof TASK_STATUS_CONFIG]
-                      ?? TASK_STATUS_CONFIG.PENDING
-                    return (
-                      <div key={task.id} className="flex items-start gap-3 px-4 py-3">
-                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${tc.bg}`}>
-                          {task.status === 'COMPLETED'
-                            ? <CheckCircle2 size={12} className={tc.color} />
-                            : task.status === 'IN_PROGRESS'
-                              ? <Clock size={11} className={tc.color} />
-                              : <span className={`h-2 w-2 rounded-full ${tc.color.includes('yellow') ? 'bg-yellow-400' : 'bg-gray-400'}`} />
-                          }
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 dark:text-zinc-200 truncate">{task.title}</p>
-                          <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{task.serviceName}</p>
-                        </div>
-                        <span className={`shrink-0 text-xs font-medium ${tc.color}`}>{tc.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <PortalTaskList
+                tasks={recentTasks.map((t) => ({
+                  id: t.id,
+                  serviceId: t.serviceId,
+                  title: t.title,
+                  serviceName: t.serviceName,
+                  status: t.status,
+                  rating: t.rating,
+                  ratingComment: t.ratingComment,
+                }))}
+              />
             </div>
           </div>
 
@@ -369,6 +355,48 @@ export default async function PortalPage() {
 
         </div>
       </div>
+
+      {/* ── Empleados ──────────────────────────────────────────── */}
+      {employees.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-900 dark:text-zinc-50">Equipo asignado</h2>
+            <span className="text-xs text-gray-400 dark:text-zinc-500">
+              {employees.length} empleado{employees.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {employees.map((emp) => {
+              const initials = emp.name
+                .split(' ')
+                .slice(0, 2)
+                .map((w) => w[0])
+                .join('')
+                .toUpperCase()
+              return (
+                <div
+                  key={emp.id}
+                  className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-4 flex flex-col items-center text-center gap-2"
+                >
+                  <div className="h-10 w-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-700 dark:text-brand-300 text-sm font-semibold">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 w-full">
+                    <p className="text-sm font-medium text-gray-900 dark:text-zinc-100 truncate">{emp.name}</p>
+                    {emp.position && (
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 truncate mt-0.5">{emp.position}</p>
+                    )}
+                    {emp.department && (
+                      <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{emp.department}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

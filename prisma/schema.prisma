@@ -158,6 +158,8 @@ model ServiceTask {
   status         TaskStatus @default(PENDING)
   assignedUserId String?
   dueDate        DateTime?  @db.Timestamptz(6)
+  rating         Int?
+  ratingComment  String?
   createdAt      DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
   assignedUser   User?      @relation(fields: [assignedUserId], references: [id], onUpdate: NoAction)
