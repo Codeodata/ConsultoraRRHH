@@ -4,12 +4,405 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// ─── Enums ───────────────────────────────────────────────────────────────────
+model Tenant {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  companies    Company[]
+  subscription Subscription?
+  users        User[]
+
+  @@map("tenants")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  tenantId      String
+  name          String?
+  email         String        @unique
+  emailVerified DateTime?     @db.Timestamptz(6)
+  image         String?
+  password      String?
+  role          Role          @default(CLIENT)
+  isActive      Boolean       @default(true)
+  companyId     String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  accounts      Account[]
+  assignedTasks ServiceTask[]
+  sessions      Session[]
+  company       Company?      @relation(fields: [companyId], references: [id], onUpdate: NoAction, map: "users_company_fk")
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([email])
+  @@index([tenantId], map: "users_tenant_idx")
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime @db.Timestamptz(6)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime @db.Timestamptz(6)
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Company {
+  id                   String                  @id @default(cuid())
+  tenantId             String
+  name                 String
+  rut                  String?
+  email                String?
+  phone                String?
+  address              String?
+  contactName          String?
+  isActive             Boolean                 @default(true)
+  createdAt            DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
+  tenant               Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  employees            Employee[]
+  jobDescriptions      JobDescription[]
+  performanceEvals     PerformanceEvaluation[]
+  recruitmentProcesses RecruitmentProcess[]
+  services             Service[]
+  users                User[]
+
+  @@index([tenantId], map: "companies_tenant_idx")
+  @@map("companies")
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  tenantId    String
+  companyId   String
+  name        String
+  description String?
+  status      ServiceStatus @default(PENDING)
+  progress    Int           @default(0)
+  startDate   DateTime?     @db.Timestamptz(6)
+  endDate     DateTime?     @db.Timestamptz(6)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  documents   Document[]
+  tasks       ServiceTask[]
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId], map: "services_company_idx")
+  @@index([tenantId], map: "services_tenant_idx")
+  @@map("services")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  tenantId    String
+  serviceId   String
+  name        String
+  description String?
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([serviceId], map: "documents_service_idx")
+  @@index([tenantId], map: "documents_tenant_idx")
+  @@map("documents")
+}
+
+model ServiceTask {
+  id             String     @id @default(cuid())
+  tenantId       String
+  serviceId      String
+  title          String
+  description    String?
+  status         TaskStatus @default(PENDING)
+  assignedUserId String?
+  dueDate        DateTime?  @db.Timestamptz(6)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+  assignedUser   User?      @relation(fields: [assignedUserId], references: [id], onUpdate: NoAction)
+  service        Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([serviceId], map: "service_tasks_service_idx")
+  @@index([tenantId], map: "service_tasks_tenant_idx")
+  @@map("service_tasks")
+}
+
+model JobDescription {
+  id               String   @id @default(cuid())
+  tenantId         String
+  companyId        String
+  title            String
+  department       String?
+  description      String
+  responsibilities String?
+  requirements     String?
+  competencies     String?
+  salaryRange      String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId], map: "job_descriptions_company_idx")
+  @@index([tenantId], map: "job_descriptions_tenant_idx")
+  @@map("job_descriptions")
+}
+
+model PerformanceEvaluation {
+  id                  String     @id @default(cuid())
+  tenantId            String
+  companyId           String
+  employeeName        String
+  employeePosition    String?
+  period              String
+  evaluatorName       String?
+  scoreProductivity   Int?
+  scoreQuality        Int?
+  scoreTeamwork       Int?
+  scoreInitiative     Int?
+  scorePunctuality    Int?
+  strengths           String?
+  areasForImprovement String?
+  goals               String?
+  status              EvalStatus @default(DRAFT)
+  evaluationDate      DateTime?  @db.Timestamptz(6)
+  createdAt           DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+  company             Company    @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId], map: "perf_evals_company_idx")
+  @@index([tenantId], map: "perf_evals_tenant_idx")
+  @@map("performance_evaluations")
+}
+
+model Employee {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  companyId            String
+  name                 String
+  rut                  String?
+  email                String?
+  personalEmail        String?
+  phone                String?
+  position             String?
+  department           String?
+  reportsToId          String?
+  startDate            DateTime?            @db.Timestamptz(6)
+  birthDate            DateTime?            @db.Timestamptz(6)
+  address              String?
+  gender               String?
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  documents            EmployeeDocument[]
+  goals                EmployeeGoal[]
+  history              EmployeeHistory[]
+  company              Company              @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reportsTo            Employee?            @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onUpdate: NoAction)
+  reports              Employee[]           @relation("EmployeeHierarchy")
+  recruitmentProcesses RecruitmentProcess[]
+
+  @@index([companyId], map: "employees_company_idx")
+  @@index([tenantId], map: "employees_tenant_idx")
+  @@map("employees")
+}
+
+model EmployeeGoal {
+  id         String     @id @default(cuid())
+  tenantId   String
+  employeeId String
+  name       String
+  startDate  DateTime?  @db.Timestamptz(6)
+  endDate    DateTime?  @db.Timestamptz(6)
+  status     GoalStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+  employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employeeId], map: "employee_goals_employee_idx")
+  @@index([tenantId], map: "employee_goals_tenant_idx")
+  @@map("employee_goals")
+}
+
+model EmployeeDocument {
+  id         String      @id @default(cuid())
+  tenantId   String
+  employeeId String
+  name       String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
+  category   DocCategory @default(GENERAL)
+  createdAt  DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employeeId], map: "employee_documents_employee_idx")
+  @@index([tenantId], map: "employee_documents_tenant_idx")
+  @@map("employee_documents")
+}
+
+model EmployeeHistory {
+  id          String     @id @default(cuid())
+  tenantId    String
+  employeeId  String
+  date        DateTime   @default(now()) @db.Timestamptz(6)
+  changeType  ChangeType
+  description String?
+  createdAt   DateTime   @default(now()) @db.Timestamptz(6)
+  employee    Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employeeId], map: "employee_history_employee_idx")
+  @@index([tenantId], map: "employee_history_tenant_idx")
+  @@map("employee_history")
+}
+
+model RecruitmentProcess {
+  id              String                  @id @default(cuid())
+  tenantId        String
+  companyId       String
+  positionTitle   String
+  department      String?
+  stage           ProcessStage            @default(RECLUTAMIENTO)
+  status          ProcessStatus           @default(ACTIVE)
+  openedAt        DateTime                @default(now()) @db.Timestamptz(6)
+  closedAt        DateTime?               @db.Timestamptz(6)
+  notes           String?
+  employeeId      String?
+  createdAt       DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
+  candidates      ProcessCandidate[]
+  onboardingTasks ProcessOnboardingTask[]
+  company         Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  employee        Employee?               @relation(fields: [employeeId], references: [id], onUpdate: NoAction)
+
+  @@index([companyId], map: "recruitment_processes_company_idx")
+  @@index([tenantId], map: "recruitment_processes_tenant_idx")
+  @@map("recruitment_processes")
+}
+
+model ProcessCandidate {
+  id                String             @id @default(cuid())
+  tenantId          String
+  processId         String
+  name              String
+  email             String?
+  phone             String?
+  cvFileName        String?
+  cvFilePath        String?
+  status            CandidateStatus    @default(RECIBIDO)
+  interviewDate     DateTime?          @db.Timestamptz(6)
+  interviewNotes    String?
+  evaluationScore   Int?
+  evaluationNotes   String?
+  medicalExamDate   DateTime?          @db.Timestamptz(6)
+  medicalExamExpiry DateTime?          @db.Timestamptz(6)
+  medicalExamResult String?
+  validationsOk     Boolean            @default(false)
+  isSelected        Boolean            @default(false)
+  rejectionReason   String?
+  notes             String?
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  process           RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([processId], map: "process_candidates_process_idx")
+  @@index([tenantId], map: "process_candidates_tenant_idx")
+  @@map("process_candidates")
+}
+
+model ProcessOnboardingTask {
+  id          String             @id @default(cuid())
+  tenantId    String
+  processId   String
+  title       String
+  description String?
+  category    String             @default("INDUCCION")
+  dueDate     DateTime?          @db.Timestamptz(6)
+  completedAt DateTime?          @db.Timestamptz(6)
+  notes       String?
+  createdAt   DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  process     RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([processId], map: "process_onboarding_tasks_process_idx")
+  @@index([tenantId], map: "process_onboarding_tasks_tenant_idx")
+  @@map("process_onboarding_tasks")
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  tenantId         String             @unique
+  planTier         PlanTier           @default(STARTER)
+  status           SubscriptionStatus @default(TRIAL)
+  mpPreapprovalId  String?            @unique
+  currentPeriodEnd DateTime?          @db.Timestamptz(6)
+  trialEndsAt      DateTime?          @db.Timestamptz(6)
+  cancelledAt      DateTime?          @db.Timestamptz(6)
+  createdAt        DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  payments         PaymentRecord[]
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("subscriptions")
+}
+
+model PaymentRecord {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  mpPaymentId    String?      @unique
+  amount         Float
+  currency       String       @default("CLP")
+  status         String
+  paidAt         DateTime?    @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([subscriptionId], map: "payment_records_subscription_idx")
+  @@map("payment_records")
+}
 
 enum Role {
   SUPER_ADMIN
@@ -90,452 +483,4 @@ enum PlanTier {
   STARTER
   PRO
   BUSINESS
-}
-
-// ─── Tenants ─────────────────────────────────────────────────────────────────
-
-model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users        User[]
-  companies    Company[]
-  subscription Subscription?
-
-  @@map("tenants")
-}
-
-// ─── Users ───────────────────────────────────────────────────────────────────
-
-model User {
-  id            String    @id @default(cuid())
-  tenantId      String
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          Role      @default(CLIENT)
-  isActive      Boolean   @default(true)
-  companyId     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company       Company?      @relation(fields: [companyId], references: [id])
-  accounts      Account[]
-  sessions      Session[]
-  assignedTasks ServiceTask[]
-
-  @@index([tenantId])
-  @@index([email])
-  @@map("users")
-}
-
-// ─── Auth.js tables ──────────────────────────────────────────────────────────
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-// ─── Companies ───────────────────────────────────────────────────────────────
-
-model Company {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  rut         String?
-  email       String?
-  phone       String?
-  address     String?
-  contactName String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  services             Service[]
-  users                User[]
-  employees            Employee[]
-  jobDescriptions      JobDescription[]
-  performanceEvals     PerformanceEvaluation[]
-  recruitmentProcesses RecruitmentProcess[]
-
-  @@index([tenantId])
-  @@map("companies")
-}
-
-// ─── Services ────────────────────────────────────────────────────────────────
-
-model Service {
-  id          String        @id @default(cuid())
-  tenantId    String
-  companyId   String
-  name        String
-  description String?       @db.Text
-  status      ServiceStatus @default(PENDING)
-  progress    Int           @default(0)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  documents Document[]
-  tasks     ServiceTask[]
-
-  @@index([tenantId])
-  @@index([companyId])
-  @@map("services")
-}
-
-// ─── Documents ───────────────────────────────────────────────────────────────
-
-model Document {
-  id          String   @id @default(cuid())
-  tenantId    String
-  serviceId   String
-  name        String
-  description String?
-  fileName    String
-  filePath    String
-  fileSize    Int
-  mimeType    String
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([serviceId])
-  @@map("documents")
-}
-
-// ─── Service Tasks ────────────────────────────────────────────────────────────
-
-model ServiceTask {
-  id             String     @id @default(cuid())
-  tenantId       String
-  serviceId      String
-  title          String
-  description    String?    @db.Text
-  status         TaskStatus @default(PENDING)
-  assignedUserId String?
-  dueDate        DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  service      Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  assignedUser User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@index([serviceId])
-  @@map("service_tasks")
-}
-
-// ─── Job Descriptions ────────────────────────────────────────────────────────
-
-model JobDescription {
-  id               String   @id @default(cuid())
-  tenantId         String
-  companyId        String
-  title            String
-  department       String?
-  description      String   @db.Text
-  responsibilities String?  @db.Text
-  requirements     String?  @db.Text
-  competencies     String?  @db.Text
-  salaryRange      String?
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([companyId])
-  @@map("job_descriptions")
-}
-
-// ─── Performance Evaluations ─────────────────────────────────────────────────
-
-model PerformanceEvaluation {
-  id                  String     @id @default(cuid())
-  tenantId            String
-  companyId           String
-  employeeName        String
-  employeePosition    String?
-  period              String
-  evaluatorName       String?
-  scoreProductivity   Int?
-  scoreQuality        Int?
-  scoreTeamwork       Int?
-  scoreInitiative     Int?
-  scorePunctuality    Int?
-  strengths           String?    @db.Text
-  areasForImprovement String?    @db.Text
-  goals               String?    @db.Text
-  status              EvalStatus @default(DRAFT)
-  evaluationDate      DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([companyId])
-  @@map("performance_evaluations")
-}
-
-// ─── Employees ───────────────────────────────────────────────────────────────
-
-model Employee {
-  id            String    @id @default(cuid())
-  tenantId      String
-  companyId     String
-  name          String
-  rut           String?
-  email         String?
-  personalEmail String?
-  phone         String?
-  position      String?
-  department    String?
-  reportsToId   String?
-  startDate     DateTime?
-  birthDate     DateTime?
-  address       String?
-  gender        String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  company              Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  reportsTo            Employee?            @relation("EmployeeHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
-  reports              Employee[]           @relation("EmployeeHierarchy")
-  history              EmployeeHistory[]
-  goals                EmployeeGoal[]
-  documents            EmployeeDocument[]
-  recruitmentProcesses RecruitmentProcess[]
-
-  @@index([tenantId])
-  @@index([companyId])
-  @@map("employees")
-}
-
-// ─── Employee Goals ───────────────────────────────────────────────────────────
-
-model EmployeeGoal {
-  id         String     @id @default(cuid())
-  tenantId   String
-  employeeId String
-  name       String
-  startDate  DateTime?
-  endDate    DateTime?
-  status     GoalStatus @default(ACTIVE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([employeeId])
-  @@map("employee_goals")
-}
-
-// ─── Employee Documents ───────────────────────────────────────────────────────
-
-model EmployeeDocument {
-  id         String      @id @default(cuid())
-  tenantId   String
-  employeeId String
-  name       String
-  fileName   String
-  filePath   String
-  fileSize   Int
-  mimeType   String
-  category   DocCategory @default(GENERAL)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([employeeId])
-  @@map("employee_documents")
-}
-
-// ─── Employee History ─────────────────────────────────────────────────────────
-
-model EmployeeHistory {
-  id          String     @id @default(cuid())
-  tenantId    String
-  employeeId  String
-  date        DateTime   @default(now())
-  changeType  ChangeType
-  description String?    @db.Text
-  createdAt   DateTime   @default(now())
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([employeeId])
-  @@map("employee_history")
-}
-
-// ─── Recruitment Processes ────────────────────────────────────────────────────
-
-model RecruitmentProcess {
-  id            String        @id @default(cuid())
-  tenantId      String
-  companyId     String
-  positionTitle String
-  department    String?
-  stage         ProcessStage  @default(RECLUTAMIENTO)
-  status        ProcessStatus @default(ACTIVE)
-  openedAt      DateTime      @default(now())
-  closedAt      DateTime?
-  notes         String?       @db.Text
-  employeeId    String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  company         Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employee        Employee?               @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  candidates      ProcessCandidate[]
-  onboardingTasks ProcessOnboardingTask[]
-
-  @@index([tenantId])
-  @@index([companyId])
-  @@map("recruitment_processes")
-}
-
-model ProcessCandidate {
-  id          String          @id @default(cuid())
-  tenantId    String
-  processId   String
-  name        String
-  email       String?
-  phone       String?
-  cvFileName  String?
-  cvFilePath  String?
-  status      CandidateStatus @default(RECIBIDO)
-
-  interviewDate     DateTime?
-  interviewNotes    String?   @db.Text
-  evaluationScore   Int?
-  evaluationNotes   String?   @db.Text
-
-  medicalExamDate   DateTime?
-  medicalExamExpiry DateTime?
-  medicalExamResult String?
-  validationsOk     Boolean   @default(false)
-
-  isSelected      Boolean  @default(false)
-  rejectionReason String?
-  notes           String?  @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  process RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([processId])
-  @@map("process_candidates")
-}
-
-model ProcessOnboardingTask {
-  id          String    @id @default(cuid())
-  tenantId    String
-  processId   String
-  title       String
-  description String?
-  category    String    @default("INDUCCION")
-  dueDate     DateTime?
-  completedAt DateTime?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  process RecruitmentProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([processId])
-  @@map("process_onboarding_tasks")
-}
-
-// ─── Billing ─────────────────────────────────────────────────────────────────
-
-model Subscription {
-  id               String             @id @default(cuid())
-  tenantId         String             @unique
-  planTier         PlanTier           @default(STARTER)
-  status           SubscriptionStatus @default(TRIAL)
-  mpPreapprovalId  String?            @unique
-  currentPeriodEnd DateTime?
-  trialEndsAt      DateTime?
-  cancelledAt      DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-
-  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payments PaymentRecord[]
-
-  @@map("subscriptions")
-}
-
-model PaymentRecord {
-  id             String    @id @default(cuid())
-  subscriptionId String
-  mpPaymentId    String?   @unique
-  amount         Float
-  currency       String    @default("CLP")
-  status         String
-  paidAt         DateTime?
-  createdAt      DateTime  @default(now())
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@index([subscriptionId])
-  @@map("payment_records")
 }
