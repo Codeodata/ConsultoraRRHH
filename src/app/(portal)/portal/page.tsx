@@ -19,6 +19,7 @@ import {
   Layers,
   CircleCheck,
   Users,
+  Star,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -252,6 +253,27 @@ export default async function PortalPage() {
                           <span className="flex items-center gap-1">
                             <CalendarDays size={12} />
                             Vence {formatShortDate(service.endDate)}
+                          </span>
+                        )}
+                        {service.status === 'COMPLETED' && (
+                          <span className="flex items-center gap-1 ml-auto">
+                            {service.rating ? (
+                              <>
+                                {[1,2,3,4,5].map((i) => (
+                                  <Star
+                                    key={i}
+                                    size={11}
+                                    className={i <= service.rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-200 dark:text-zinc-700 fill-gray-200 dark:fill-zinc-700'}
+                                  />
+                                ))}
+                                <span className="ml-0.5">{service.rating}/5</span>
+                              </>
+                            ) : (
+                              <>
+                                <Star size={11} className="text-gray-300 dark:text-zinc-600" />
+                                <span className="text-brand-500 dark:text-brand-400">Calificar</span>
+                              </>
+                            )}
                           </span>
                         )}
                       </div>

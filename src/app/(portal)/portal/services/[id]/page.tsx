@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { formatDate, formatFileSize, getStatusColor, getStatusLabel } from '@/lib/utils'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { PortalTaskList } from '@/components/portal/task-list-with-rating'
+import { ServiceRating } from '@/components/portal/service-rating'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Detalle servicio' }
@@ -69,6 +70,17 @@ export default async function PortalServicePage({ params }: { params: Promise<{ 
             <p className="font-medium">{formatDate(service.endDate)}</p>
           </div>
         </div>
+
+        {service.status === 'COMPLETED' && (
+          <div className="border-t border-gray-100 dark:border-zinc-800 pt-4">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">Tu calificación del servicio</h3>
+            <ServiceRating
+              serviceId={service.id}
+              initialRating={service.rating}
+              initialComment={service.ratingComment}
+            />
+          </div>
+        )}
       </div>
 
       <div className="card overflow-hidden">
