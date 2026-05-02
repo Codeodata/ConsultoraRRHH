@@ -94,8 +94,8 @@ export function UserForm({ companies, user }: UserFormProps) {
           required
           className="input"
         >
-          <option value="OWNER">Administrador</option>
           <option value="RRHH">RRHH</option>
+          <option value="OWNER">Administrador</option>
           <option value="CLIENT">Cliente</option>
         </select>
       </div>
