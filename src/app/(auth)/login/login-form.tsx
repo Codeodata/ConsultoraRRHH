@@ -40,7 +40,7 @@ export function LoginForm() {
       const result = await signIn('credentials', {
         email,
         password,
-        tenantSlug,
+        ...(tenantSlug ? { tenantSlug } : {}),
         redirect: false,
       })
 

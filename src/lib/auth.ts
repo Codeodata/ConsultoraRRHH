@@ -31,7 +31,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
-        const { email, password, tenantSlug } = parsed.data
+        const { email, password, tenantSlug: rawSlug } = parsed.data
+        const tenantSlug = rawSlug && rawSlug !== 'undefined' ? rawSlug : undefined
 
         const ip =
           request?.headers?.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
