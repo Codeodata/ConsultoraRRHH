@@ -6,9 +6,13 @@ import { logAction, getIp } from '@/lib/audit'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
-  // Rate limiting
-  const { success, reset } = await checkRateLimit(req)
-  if (!success) return rateLimitResponse(reset)
+  // Rate limiting (fallo silencioso para no bloquear el registro)
+  try {
+    const { success, reset } = await checkRateLimit(req)
+    if (!success) return rateLimitResponse(reset)
+  } catch (e) {
+    console.error('[register] rate limit error:', e)
+  }
 
   const ip = getIp(req)
 
@@ -24,27 +28,37 @@ export async function POST(req: Request) {
   const slugBase = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-')
   const slug = `${slugBase}-${Date.now()}`
 
-  const tenant = await db.tenant.create({
-    data: {
-      name,
-      slug,
-      users: {
-        create: {
-          name,
-          email,
-          password: hashedPassword,
-          role: 'OWNER',
+  let tenant
+  try {
+    tenant = await db.tenant.create({
+      data: {
+        name,
+        slug,
+        users: {
+          create: {
+            name,
+            email,
+            password: hashedPassword,
+            role: 'OWNER',
+          },
+        },
+        subscription: {
+          create: {
+            planTier: 'FREE',
+            status: 'ACTIVE',
+          },
         },
       },
-      subscription: {
-        create: {
-          planTier: 'FREE',
-          status: 'ACTIVE',
-        },
-      },
-    },
-    include: { users: true },
-  })
+      include: { users: true },
+    })
+  } catch (e: any) {
+    console.error('[register] db error:', e)
+    const isDuplicate = e?.code === 'P2002'
+    return NextResponse.json(
+      { error: isDuplicate ? 'El email ya está registrado' : 'Error al crear la cuenta. Intenta nuevamente.' },
+      { status: isDuplicate ? 409 : 500 }
+    )
+  }
 
   const user = tenant.users[0]
 

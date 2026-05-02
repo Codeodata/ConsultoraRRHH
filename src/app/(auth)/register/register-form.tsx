@@ -37,7 +37,13 @@ export function RegisterForm() {
         body: JSON.stringify({ name, email, password }),
       })
 
-      const data = await res.json()
+      let data: any = {}
+      try {
+        data = await res.json()
+      } catch {
+        setError(`Error del servidor (${res.status}). Intenta nuevamente.`)
+        return
+      }
 
       if (!res.ok) {
         setError(data.error ?? 'Error al registrarse')
