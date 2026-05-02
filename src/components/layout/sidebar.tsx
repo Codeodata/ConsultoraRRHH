@@ -15,8 +15,51 @@ import {
   CreditCard,
   GitPullRequestArrow,
   LogOut,
+  Zap,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react'
+import type { PlanLimits } from '@/lib/plan-limits'
+
+function isNearLimit(p: PlanInfo) {
+  const check = (current: number, max: number | null) => max !== null && current / max >= 0.8
+  return (
+    check(p.usage.companies, p.limits.maxCompanies) ||
+    check(p.usage.employees, p.limits.maxEmployees) ||
+    check(p.usage.users, p.limits.maxUsers)
+  )
+}
+
+function isAtLimit(p: PlanInfo) {
+  const check = (current: number, max: number | null) => max !== null && current >= max
+  return (
+    check(p.usage.companies, p.limits.maxCompanies) ||
+    check(p.usage.employees, p.limits.maxEmployees) ||
+    check(p.usage.users, p.limits.maxUsers)
+  )
+}
+
+function MiniBar({ current, max, label }: { current: number; max: number; label: string }) {
+  const pct = Math.min(Math.round((current / max) * 100), 100)
+  const isOver = pct >= 100
+  const isWarn = pct >= 80
+  return (
+    <div className="space-y-0.5">
+      <div className="flex justify-between text-[10px] text-gray-500 dark:text-zinc-400">
+        <span>{label}</span>
+        <span className={cn('font-medium', isOver ? 'text-red-600 dark:text-red-400' : isWarn ? 'text-amber-600 dark:text-amber-400' : '')}>
+          {current}/{max}
+        </span>
+      </div>
+      <div className="h-1 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
+        <div
+          className={cn('h-1 rounded-full', isOver ? 'bg-red-500' : isWarn ? 'bg-amber-500' : 'bg-brand-500')}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
 
 interface NavItem {
   href: string
@@ -46,12 +89,20 @@ const rrhhNav: NavItem[] = [
   { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow },
 ]
 
+interface PlanInfo {
+  plan: string
+  planName: string
+  limits: PlanLimits
+  usage: { companies: number; employees: number; users: number }
+}
+
 interface SidebarProps {
   role: string
   userName: string
+  planInfo?: PlanInfo
 }
 
-export function Sidebar({ role, userName }: SidebarProps) {
+export function Sidebar({ role, userName, planInfo }: SidebarProps) {
   const pathname = usePathname()
   const navItems = role === 'SUPER_ADMIN' ? adminNav : rrhhNav
   const initials = userName
@@ -105,6 +156,58 @@ export function Sidebar({ role, userName }: SidebarProps) {
           )
         })}
       </nav>
+
+      {/* Plan widget */}
+      {planInfo && role === 'SUPER_ADMIN' && (
+        <div className="px-3 pb-2">
+          <Link href="/billing">
+            <div className={cn(
+              'rounded-lg border px-3 py-2.5 space-y-2 transition-colors',
+              isAtLimit(planInfo)
+                ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                : isNearLimit(planInfo)
+                ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/50 hover:bg-gray-100 dark:hover:bg-zinc-800'
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  {isAtLimit(planInfo) || isNearLimit(planInfo)
+                    ? <AlertTriangle size={12} className={isAtLimit(planInfo) ? 'text-red-500' : 'text-amber-500'} />
+                    : <Zap size={12} className="text-gray-400 dark:text-zinc-500" />
+                  }
+                  <span className="text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                    Plan {planInfo.planName}
+                  </span>
+                </div>
+                <span className="text-[10px] text-brand-600 dark:text-brand-400 font-medium">
+                  {planInfo.plan === 'FREE' ? 'Actualizar →' : 'Ver plan →'}
+                </span>
+              </div>
+              {planInfo.limits.maxCompanies !== null && (
+                <MiniBar
+                  current={planInfo.usage.companies}
+                  max={planInfo.limits.maxCompanies}
+                  label="empresas"
+                />
+              )}
+              {planInfo.limits.maxEmployees !== null && (
+                <MiniBar
+                  current={planInfo.usage.employees}
+                  max={planInfo.limits.maxEmployees}
+                  label="empleados"
+                />
+              )}
+              {planInfo.limits.maxUsers !== null && (
+                <MiniBar
+                  current={planInfo.usage.users}
+                  max={planInfo.limits.maxUsers}
+                  label="usuarios"
+                />
+              )}
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* User + Logout */}
       <div className="border-t border-gray-100 dark:border-zinc-800 p-3 space-y-1">

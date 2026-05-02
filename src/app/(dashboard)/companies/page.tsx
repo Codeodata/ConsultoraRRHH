@@ -5,6 +5,8 @@ import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
+import { PlanUsageBar } from '@/components/billing/plan-usage-bar'
+import { getTenantUsage } from '@/lib/plan-limits'
 import type { Metadata } from 'next'
 import { Plus, Building2, ArrowRight } from 'lucide-react'
 
@@ -14,11 +16,16 @@ export default async function CompaniesPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
 
-  const companies = await db.company.findMany({
-    where: { tenantId },
-    include: { _count: { select: { services: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
+  const [companies, usage] = await Promise.all([
+    db.company.findMany({
+      where: { tenantId },
+      include: { _count: { select: { services: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    getTenantUsage(tenantId),
+  ])
+
+  const atLimit = usage.limits.maxCompanies !== null && usage.usage.companies >= usage.limits.maxCompanies
 
   return (
     <div className="p-6 space-y-6">
@@ -29,13 +36,27 @@ export default async function CompaniesPage() {
             {companies.length} empresa{companies.length !== 1 ? 's' : ''} registrada{companies.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/companies/new">
-            <Plus size={15} />
-            Nueva empresa
-          </Link>
-        </Button>
+        {atLimit ? (
+          <Button asChild variant="outline">
+            <Link href="/billing">Actualizar plan para agregar más</Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/companies/new">
+              <Plus size={15} />
+              Nueva empresa
+            </Link>
+          </Button>
+        )}
       </div>
+
+      <PlanUsageBar
+        planName={usage.planName}
+        label="Empresas"
+        current={usage.usage.companies}
+        max={usage.limits.maxCompanies}
+        showUpgrade={true}
+      />
 
       <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none overflow-hidden">
         {companies.length === 0 ? (

@@ -4,6 +4,8 @@ import { StatCard } from '@/components/ui/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { getStatusLabel, formatDate } from '@/lib/utils'
 import { DashboardCharts } from '@/components/dashboard/charts'
+import { getTenantUsage } from '@/lib/plan-limits'
+import { UpgradePrompt } from '@/components/billing/upgrade-prompt'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Building2, Wrench, Clock, CheckCircle2, ArrowRight } from 'lucide-react'
@@ -22,6 +24,19 @@ function getStatusVariant(status: string): 'warning' | 'info' | 'success' | 'sec
 export default async function DashboardPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
+
+  const planUsage = await getTenantUsage(tenantId)
+
+  const atLimitMsg = (() => {
+    const { limits, usage, planName } = planUsage
+    if (limits.maxCompanies !== null && usage.companies >= limits.maxCompanies)
+      return `Alcanzaste el límite de empresas en el Plan ${planName}. Actualizá para agregar más clientes.`
+    if (limits.maxEmployees !== null && usage.employees >= limits.maxEmployees)
+      return `Alcanzaste el límite de empleados en el Plan ${planName}. Actualizá para seguir creciendo.`
+    if (limits.maxUsers !== null && usage.users >= limits.maxUsers)
+      return `Alcanzaste el límite de usuarios en el Plan ${planName}. Actualizá para agregar más miembros al equipo.`
+    return null
+  })()
 
   const [
     totalCompanies,
@@ -58,6 +73,8 @@ export default async function DashboardPage() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-50">Resumen general</h2>
         <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">Vista rápida del estado de la plataforma</p>
       </div>
+
+      {atLimitMsg && <UpgradePrompt message={atLimitMsg} variant="banner" />}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

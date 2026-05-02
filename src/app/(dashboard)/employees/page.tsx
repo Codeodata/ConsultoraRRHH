@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EmployeesTable } from '@/components/employees/employees-table'
 import { EmployeeCharts } from '@/components/employees/employee-charts'
+import { PlanUsageBar } from '@/components/billing/plan-usage-bar'
+import { getTenantUsage } from '@/lib/plan-limits'
 import type { Metadata } from 'next'
 import { Plus, Users, GitBranch } from 'lucide-react'
 
@@ -13,15 +15,18 @@ export default async function EmployeesPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
 
-  const employees = await db.employee.findMany({
-    where: { tenantId },
-    include: {
-      company: { select: { name: true } },
-      reportsTo: { select: { name: true } },
-      _count: { select: { reports: true } },
-    },
-    orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
-  })
+  const [employees, usage] = await Promise.all([
+    db.employee.findMany({
+      where: { tenantId },
+      include: {
+        company: { select: { name: true } },
+        reportsTo: { select: { name: true } },
+        _count: { select: { reports: true } },
+      },
+      orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+    }),
+    getTenantUsage(tenantId),
+  ])
 
   const active = employees.filter((e) => e.isActive).length
   const inactive = employees.length - active
@@ -34,6 +39,8 @@ export default async function EmployeesPage() {
   const byDepartment = Array.from(deptMap.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
+
+  const atLimit = usage.limits.maxEmployees !== null && usage.usage.employees >= usage.limits.maxEmployees
 
   return (
     <div className="p-6 space-y-6">
@@ -51,14 +58,28 @@ export default async function EmployeesPage() {
               Organigrama
             </Link>
           </Button>
-          <Button asChild>
-            <Link href="/employees/new">
-              <Plus size={15} />
-              Nuevo empleado
-            </Link>
-          </Button>
+          {atLimit ? (
+            <Button asChild variant="outline">
+              <Link href="/billing">Actualizar plan para agregar más</Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/employees/new">
+                <Plus size={15} />
+                Nuevo empleado
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      <PlanUsageBar
+        planName={usage.planName}
+        label="Empleados"
+        current={usage.usage.employees}
+        max={usage.limits.maxEmployees}
+        showUpgrade={true}
+      />
 
       <EmployeeCharts active={active} inactive={inactive} byDepartment={byDepartment} />
 

@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
+import { PlanUsageBar } from '@/components/billing/plan-usage-bar'
+import { getTenantUsage } from '@/lib/plan-limits'
 import type { Metadata } from 'next'
 import { Plus } from 'lucide-react'
 
@@ -27,11 +29,16 @@ export default async function UsersPage() {
 
   const tenantId = session.user.tenantId
 
-  const users = await db.user.findMany({
-    where: { tenantId },
-    include: { company: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
+  const [users, usage] = await Promise.all([
+    db.user.findMany({
+      where: { tenantId },
+      include: { company: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    getTenantUsage(tenantId),
+  ])
+
+  const atLimit = usage.limits.maxUsers !== null && usage.usage.users >= usage.limits.maxUsers
 
   return (
     <div className="p-6 space-y-6">
@@ -42,13 +49,27 @@ export default async function UsersPage() {
             {users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/users/new">
-            <Plus size={15} />
-            Nuevo usuario
-          </Link>
-        </Button>
+        {atLimit ? (
+          <Button asChild variant="outline">
+            <Link href="/billing">Actualizar plan para agregar más</Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/users/new">
+              <Plus size={15} />
+              Nuevo usuario
+            </Link>
+          </Button>
+        )}
       </div>
+
+      <PlanUsageBar
+        planName={usage.planName}
+        label="Usuarios del sistema"
+        current={usage.usage.users}
+        max={usage.limits.maxUsers}
+        showUpgrade={true}
+      />
 
       <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none overflow-hidden">
         <Table>
