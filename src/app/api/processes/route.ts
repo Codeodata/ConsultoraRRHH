@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { processSchema } from '@/lib/validations'
-import { validateCompanyOwnership } from '@/lib/permissions'
+import { validateCompanyOwnership, requireFeature } from '@/lib/permissions'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
+  const featureGuard = await requireFeature(session, 'procesos')
+  if (featureGuard) return featureGuard
 
   const { searchParams } = new URL(req.url)
   const companyId = searchParams.get('companyId')
@@ -33,9 +35,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
+  const featureGuard = await requireFeature(session, 'procesos')
+  if (featureGuard) return featureGuard
 
   const body = await req.json()
   const parsed = processSchema.safeParse(body)

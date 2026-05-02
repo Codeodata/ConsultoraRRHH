@@ -12,12 +12,14 @@ export type Feature =
   | 'organigrama'
   | 'performance_evaluations'
   | 'job_descriptions'
+  | 'procesos'
+  | 'tareas'
 
 export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
   FREE:     [],
-  STARTER:  ['job_descriptions'],
-  PRO:      ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions'],
-  BUSINESS: ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions'],
+  STARTER:  ['job_descriptions', 'tareas', 'procesos'],
+  PRO:      ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions', 'tareas', 'procesos'],
+  BUSINESS: ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions', 'tareas', 'procesos'],
 }
 
 // Grupos de roles reutilizables

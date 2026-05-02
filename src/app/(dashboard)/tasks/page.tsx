@@ -3,6 +3,8 @@ import { db } from '@/lib/db'
 import { ClipboardList } from 'lucide-react'
 import type { Metadata } from 'next'
 import { TasksTable } from './tasks-table'
+import { canAccessFeature } from '@/lib/permissions'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Tareas' }
 
@@ -11,6 +13,11 @@ export default async function TasksPage() {
   const tenantId = session!.user.tenantId
   const userId = session!.user.id
   const role = session!.user.role
+
+  if (role !== 'SUPER_ADMIN') {
+    const allowed = await canAccessFeature(tenantId, 'tareas')
+    if (!allowed) redirect('/billing?upgrade=tareas')
+  }
 
   const tasks = await db.serviceTask.findMany({
     where: { tenantId },

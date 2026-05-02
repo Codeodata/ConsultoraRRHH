@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import type { Metadata } from 'next'
 import { Plus, GitPullRequestArrow, Clock, CheckCircle2, PauseCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { canAccessFeature } from '@/lib/permissions'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Procesos de selección' }
 
@@ -45,6 +47,11 @@ const STATUS_LABELS: Record<string, string> = {
 export default async function ProcesosPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
+
+  if (session!.user.role !== 'SUPER_ADMIN') {
+    const allowed = await canAccessFeature(tenantId, 'procesos')
+    if (!allowed) redirect('/billing?upgrade=procesos')
+  }
 
   const processes = await db.recruitmentProcess.findMany({
     where: { tenantId },
