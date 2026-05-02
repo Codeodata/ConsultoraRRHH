@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   ClipboardList,
   CreditCard,
   GitPullRequestArrow,
+  LogOut,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -104,8 +106,8 @@ export function Sidebar({ role, userName }: SidebarProps) {
         })}
       </nav>
 
-      {/* User */}
-      <div className="border-t border-gray-100 dark:border-zinc-800 p-3">
+      {/* User + Logout */}
+      <div className="border-t border-gray-100 dark:border-zinc-800 p-3 space-y-1">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-default">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-xs font-semibold shrink-0">
             {initials}
@@ -115,6 +117,13 @@ export function Sidebar({ role, userName }: SidebarProps) {
             <p className="truncate text-xs text-gray-400 dark:text-zinc-500 leading-tight mt-0.5">{role}</p>
           </div>
         </div>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+        >
+          <LogOut size={16} className="shrink-0" />
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   )
