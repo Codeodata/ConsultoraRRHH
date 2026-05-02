@@ -25,6 +25,18 @@ export function LoginForm() {
     const tenantSlug = (fd.get('tenantSlug') as string) || undefined
 
     try {
+      // Si no hay slug todavía, verificamos si el email tiene múltiples workspaces
+      if (!tenantSlug) {
+        const res = await fetch(`/api/auth/workspaces?email=${encodeURIComponent(email)}`)
+        const data = await res.json()
+        if (data.count > 1) {
+          setNeedSlug(true)
+          setError('Tenés múltiples workspaces. Ingresá el slug de tu workspace.')
+          setLoading(false)
+          return
+        }
+      }
+
       const result = await signIn('credentials', {
         email,
         password,
@@ -33,13 +45,7 @@ export function LoginForm() {
       })
 
       if (result?.error) {
-        // Si hay múltiples workspaces, pedimos el slug
-        if (!tenantSlug) {
-          setNeedSlug(true)
-          setError('Tenés múltiples workspaces. Ingresá el slug de tu workspace.')
-        } else {
-          setError('Credenciales incorrectas. Intenta nuevamente.')
-        }
+        setError('Credenciales incorrectas. Verificá tu email y contraseña.')
         return
       }
 

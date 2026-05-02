@@ -54,7 +54,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             })
             if (users.length === 0) return null
             if (users.length > 1) {
-              // Múltiples tenants: el usuario debe ingresar el slug
               console.warn(`[auth] multiple tenants for email ${email}, tenantSlug required`)
               return null
             }
