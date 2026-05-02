@@ -4,6 +4,8 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { loginSchema } from '@/lib/validations'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { logAction } from '@/lib/audit'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(db),
@@ -14,36 +16,76 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   providers: [
     Credentials({
-      async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials)
-        if (!parsed.success) {
-          console.error('[auth] schema parse failed:', parsed.error)
-          return null
+      async authorize(credentials, request) {
+        // Rate limiting por IP
+        if (request) {
+          const { success, reset } = await checkRateLimit(request)
+          if (!success) {
+            const ip =
+              request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+            console.warn(`[auth] rate limit hit for IP ${ip}`)
+            return null
+          }
         }
 
-        const { email, password } = parsed.data
+        const parsed = loginSchema.safeParse(credentials)
+        if (!parsed.success) return null
+
+        const { email, password, tenantSlug } = parsed.data
+
+        const ip =
+          request?.headers?.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
 
         let user
         try {
-          user = await db.user.findUnique({
-            where: { email },
-            include: { tenant: true },
-          })
+          if (tenantSlug) {
+            // Busca por tenant específico
+            const tenant = await db.tenant.findUnique({ where: { slug: tenantSlug } })
+            if (!tenant) return null
+            user = await db.user.findUnique({
+              where: { tenantId_email: { tenantId: tenant.id, email } },
+              include: { tenant: true },
+            })
+          } else {
+            // Auto-detect: busca todos los users con ese email
+            const users = await db.user.findMany({
+              where: { email },
+              include: { tenant: true },
+            })
+            if (users.length === 0) return null
+            if (users.length > 1) {
+              // Múltiples tenants: el usuario debe ingresar el slug
+              console.warn(`[auth] multiple tenants for email ${email}, tenantSlug required`)
+              return null
+            }
+            user = users[0]
+          }
         } catch (e) {
           console.error('[auth] db error:', e)
           return null
         }
 
-        if (!user || !user.password || !user.isActive) {
-          console.error('[auth] user not found or inactive:', { email, found: !!user })
-          return null
-        }
+        if (!user || !user.password || !user.isActive) return null
 
         const passwordMatch = await bcrypt.compare(password, user.password)
         if (!passwordMatch) {
-          console.error('[auth] password mismatch for:', email)
+          await logAction({
+            action: 'LOGIN',
+            tenantId: user.tenantId,
+            userId: user.id,
+            metadata: { success: false, reason: 'bad_password' },
+            ipAddress: ip,
+          })
           return null
         }
+
+        await logAction({
+          action: 'LOGIN',
+          tenantId: user.tenantId,
+          userId: user.id,
+          metadata: { success: true },
+          ipAddress: ip,
+        })
 
         return {
           id: user.id,

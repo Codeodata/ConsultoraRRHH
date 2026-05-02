@@ -12,6 +12,7 @@ export function LoginForm() {
   const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [needSlug, setNeedSlug] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -21,12 +22,24 @@ export function LoginForm() {
     const fd = new FormData(e.currentTarget)
     const email = fd.get('email') as string
     const password = fd.get('password') as string
+    const tenantSlug = (fd.get('tenantSlug') as string) || undefined
 
     try {
-      const result = await signIn('credentials', { email, password, redirect: false })
+      const result = await signIn('credentials', {
+        email,
+        password,
+        tenantSlug,
+        redirect: false,
+      })
 
       if (result?.error) {
-        setError('Credenciales incorrectas. Intenta nuevamente.')
+        // Si hay múltiples workspaces, pedimos el slug
+        if (!tenantSlug) {
+          setNeedSlug(true)
+          setError('Tenés múltiples workspaces. Ingresá el slug de tu workspace.')
+        } else {
+          setError('Credenciales incorrectas. Intenta nuevamente.')
+        }
         return
       }
 
@@ -64,6 +77,26 @@ export function LoginForm() {
           placeholder="••••••••"
         />
       </div>
+
+      {needSlug && (
+        <div className="space-y-1.5">
+          <Label htmlFor="tenantSlug">Slug del workspace</Label>
+          <Input
+            id="tenantSlug"
+            name="tenantSlug"
+            type="text"
+            placeholder="mi-consultora-1234567890"
+            autoComplete="off"
+          />
+          <p className="text-xs text-gray-500">
+            Lo encontrás en Ajustes → Workspace dentro de tu cuenta.
+          </p>
+        </div>
+      )}
+
+      {!needSlug && (
+        <input type="hidden" name="tenantSlug" value="" />
+      )}
 
       {error && (
         <div className="flex items-center gap-2.5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

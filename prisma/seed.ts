@@ -27,7 +27,7 @@ async function main() {
   // ── 2. Super Admin ──────────────────────────────────────────────────────────
   const adminPassword = await bcrypt.hash('Admin1234!', 12)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@consultora.com' },
+    where: { tenantId_email: { tenantId: tenant.id, email: 'admin@consultora.com' } },
     update: {},
     create: {
       tenantId: tenant.id,
@@ -43,7 +43,7 @@ async function main() {
   // ── 3. RRHH user ────────────────────────────────────────────────────────────
   const rrhhPassword = await bcrypt.hash('Rrhh1234!', 12)
   const rrhh = await prisma.user.upsert({
-    where: { email: 'rrhh@consultora.com' },
+    where: { tenantId_email: { tenantId: tenant.id, email: 'rrhh@consultora.com' } },
     update: {},
     create: {
       tenantId: tenant.id,
@@ -77,7 +77,7 @@ async function main() {
   // ── 5. Usuario cliente vinculado a la empresa ────────────────────────────────
   const clientPassword = await bcrypt.hash('Client1234!', 12)
   const clientUser = await prisma.user.upsert({
-    where: { email: 'cliente@acme.cl' },
+    where: { tenantId_email: { tenantId: tenant.id, email: 'cliente@acme.cl' } },
     update: { companyId: company.id },
     create: {
       tenantId: tenant.id,

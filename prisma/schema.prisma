@@ -27,7 +27,7 @@ model User {
   id            String        @id @default(cuid())
   tenantId      String
   name          String?
-  email         String        @unique
+  email         String
   emailVerified DateTime?     @db.Timestamptz(6)
   image         String?
   password      String?
@@ -42,7 +42,7 @@ model User {
   company       Company?      @relation(fields: [companyId], references: [id], onUpdate: NoAction, map: "users_company_fk")
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([email])
+  @@unique([tenantId, email])
   @@index([tenantId], map: "users_tenant_idx")
   @@map("users")
 }
@@ -490,4 +490,29 @@ enum PlanTier {
   STARTER
   PRO
   BUSINESS
+}
+
+enum AuditAction {
+  LOGIN
+  REGISTER
+  DELETE
+  UPDATE_ROLE
+  UPDATE_PLAN
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  tenantId   String?
+  userId     String?
+  action     AuditAction
+  targetId   String?
+  targetType String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@index([tenantId], map: "audit_logs_tenant_idx")
+  @@index([userId], map: "audit_logs_user_idx")
+  @@index([action], map: "audit_logs_action_idx")
+  @@map("audit_logs")
 }

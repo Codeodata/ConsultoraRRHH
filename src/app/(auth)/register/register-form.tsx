@@ -44,8 +44,13 @@ export function RegisterForm() {
         return
       }
 
-      // Auto-login tras registro exitoso
-      const result = await signIn('credentials', { email, password, redirect: false })
+      // Auto-login con tenantSlug para evitar ambigüedad multi-tenant
+      const result = await signIn('credentials', {
+        email,
+        password,
+        tenantSlug: data.tenantSlug,
+        redirect: false,
+      })
       if (result?.error) {
         router.push('/login')
         return
