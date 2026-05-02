@@ -35,7 +35,7 @@ export default async function UsersPage() {
       include: { company: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     }),
-    getTenantUsage(tenantId),
+    getTenantUsage(tenantId, session.user.role),
   ])
 
   const atLimit = usage.limits.maxUsers !== null && usage.usage.users >= usage.limits.maxUsers

@@ -52,7 +52,8 @@ export async function getActivePlan(tenantId: string): Promise<PlanTier> {
   return sub.planTier
 }
 
-export async function canCreateCompany(tenantId: string): Promise<LimitCheckResult> {
+export async function canCreateCompany(tenantId: string, role?: string): Promise<LimitCheckResult> {
+  if (role === 'SUPER_ADMIN') return { allowed: true }
   const plan = await getActivePlan(tenantId)
   const { maxCompanies } = PLAN_LIMITS[plan]
   if (maxCompanies === null) return { allowed: true }
@@ -69,7 +70,8 @@ export async function canCreateCompany(tenantId: string): Promise<LimitCheckResu
   return { allowed: true }
 }
 
-export async function canCreateEmployee(tenantId: string): Promise<LimitCheckResult> {
+export async function canCreateEmployee(tenantId: string, role?: string): Promise<LimitCheckResult> {
+  if (role === 'SUPER_ADMIN') return { allowed: true }
   const plan = await getActivePlan(tenantId)
   const { maxEmployees } = PLAN_LIMITS[plan]
   if (maxEmployees === null) return { allowed: true }
@@ -86,7 +88,8 @@ export async function canCreateEmployee(tenantId: string): Promise<LimitCheckRes
   return { allowed: true }
 }
 
-export async function canCreateUser(tenantId: string): Promise<LimitCheckResult> {
+export async function canCreateUser(tenantId: string, role?: string): Promise<LimitCheckResult> {
+  if (role === 'SUPER_ADMIN') return { allowed: true }
   const plan = await getActivePlan(tenantId)
   const { maxUsers } = PLAN_LIMITS[plan]
   if (maxUsers === null) return { allowed: true }
@@ -103,9 +106,13 @@ export async function canCreateUser(tenantId: string): Promise<LimitCheckResult>
   return { allowed: true }
 }
 
-export async function getTenantUsage(tenantId: string) {
+export async function getTenantUsage(tenantId: string, role?: string) {
   const plan = await getActivePlan(tenantId)
-  const limits = PLAN_LIMITS[plan]
+  const baseLimits = PLAN_LIMITS[plan]
+  // SUPER_ADMIN no tiene restricciones de límite
+  const limits: PlanLimits = role === 'SUPER_ADMIN'
+    ? { maxCompanies: null, maxEmployees: null, maxUsers: null }
+    : baseLimits
 
   const [companies, employees, users] = await Promise.all([
     db.company.count({ where: { tenantId, isActive: true } }),

@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect('/login')
   if (session.user.role === 'CLIENT') redirect('/portal')
 
-  const usage = await getTenantUsage(session.user.tenantId)
+  const usage = await getTenantUsage(session.user.tenantId, session.user.role)
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-zinc-950">

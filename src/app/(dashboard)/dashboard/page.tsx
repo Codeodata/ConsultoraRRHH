@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
 
-  const planUsage = await getTenantUsage(tenantId)
+  const planUsage = await getTenantUsage(tenantId, session!.user.role)
 
   const atLimitMsg = (() => {
     const { limits, usage, planName } = planUsage

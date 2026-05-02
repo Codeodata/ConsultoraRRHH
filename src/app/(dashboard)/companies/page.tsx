@@ -22,7 +22,7 @@ export default async function CompaniesPage() {
       include: { _count: { select: { services: true } } },
       orderBy: { createdAt: 'desc' },
     }),
-    getTenantUsage(tenantId),
+    getTenantUsage(tenantId, session!.user.role),
   ])
 
   const atLimit = usage.limits.maxCompanies !== null && usage.usage.companies >= usage.limits.maxCompanies

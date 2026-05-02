@@ -63,12 +63,19 @@ export default function LoginPage() {
             <LoginForm />
           </div>
 
-          <p className="text-center text-sm text-gray-500 dark:text-zinc-400">
-            ¿No tenés cuenta?{' '}
-            <Link href="/register" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
-              Registrate gratis
+          <div className="space-y-3">
+            <div className="relative flex items-center gap-3">
+              <div className="flex-1 border-t border-gray-200 dark:border-zinc-800" />
+              <span className="text-xs text-gray-400 dark:text-zinc-500">o</span>
+              <div className="flex-1 border-t border-gray-200 dark:border-zinc-800" />
+            </div>
+            <Link
+              href="/register"
+              className="flex w-full items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Crear cuenta nueva
             </Link>
-          </p>
+          </div>
 
           <p className="text-center text-xs text-gray-400 dark:text-zinc-500">
             Demo: <span className="font-mono">admin@consultora.com</span> / <span className="font-mono">Admin1234!</span>

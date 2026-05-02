@@ -25,7 +25,7 @@ export default async function EmployeesPage() {
       },
       orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
     }),
-    getTenantUsage(tenantId),
+    getTenantUsage(tenantId, session!.user.role),
   ])
 
   const active = employees.filter((e) => e.isActive).length

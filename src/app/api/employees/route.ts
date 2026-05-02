@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
-  const limitCheck = await canCreateEmployee(session.user.tenantId)
+  const limitCheck = await canCreateEmployee(session.user.tenantId, session.user.role)
   if (!limitCheck.allowed) {
     return NextResponse.json(
       { error: limitCheck.reason, upgradeRequired: true, currentPlan: limitCheck.currentPlan },
