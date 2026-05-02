@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { companySchema } from '@/lib/validations'
 import { canCreateCompany } from '@/lib/plan-limits'
+import { incrementCompanies } from '@/lib/usage'
 
 export async function GET() {
   const session = await auth()
@@ -47,6 +48,8 @@ export async function POST(req: NextRequest) {
       ...parsed.data,
     },
   })
+
+  await incrementCompanies(session.user.tenantId)
 
   return NextResponse.json({ data: company }, { status: 201 })
 }

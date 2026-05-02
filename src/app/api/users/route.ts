@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { userSchema } from '@/lib/validations'
 import bcrypt from 'bcryptjs'
 import { canCreateUser } from '@/lib/plan-limits'
+import { incrementUsers } from '@/lib/usage'
 
 export async function GET() {
   const session = await auth()
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
   })
+
+  await incrementUsers(session.user.tenantId)
 
   return NextResponse.json({ data: user }, { status: 201 })
 }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import fs from 'fs'
-import path from 'path'
+import { deleteFile } from '@/lib/storage'
+import { subtractStorageUsage } from '@/lib/usage'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -46,9 +46,13 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   })
   if (!doc) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 })
 
-  const absPath = path.join(process.cwd(), doc.filePath)
-  if (fs.existsSync(absPath)) fs.unlinkSync(absPath)
-
   await db.document.delete({ where: { id } })
+
+  // Eliminar archivo de Supabase Storage (best-effort, no bloquea respuesta)
+  deleteFile(doc.filePath).catch((e) => console.error('[doc:delete] storage error:', e))
+
+  // Restar uso de storage del tenant
+  await subtractStorageUsage(session.user.tenantId, doc.fileSize)
+
   return NextResponse.json({ message: 'Documento eliminado' })
 }

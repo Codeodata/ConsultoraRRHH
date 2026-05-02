@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { companySchema } from '@/lib/validations'
+import { decrementCompanies } from '@/lib/usage'
 
 async function getCompanyOrFail(id: string, tenantId: string) {
   const company = await db.company.findFirst({ where: { id, tenantId } })
@@ -56,6 +57,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!company) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
   await db.company.delete({ where: { id } })
+  await decrementCompanies(session.user.tenantId)
 
   return NextResponse.json({ message: 'Empresa eliminada' })
 }

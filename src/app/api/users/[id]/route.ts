@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { decrementUsers } from '@/lib/usage'
 
 const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
@@ -66,6 +67,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
   await db.user.delete({ where: { id } })
+  await decrementUsers(session.user.tenantId)
 
   return NextResponse.json({ message: 'Usuario eliminado' })
 }

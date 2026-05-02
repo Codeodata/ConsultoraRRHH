@@ -6,7 +6,6 @@ import { logAction, getIp } from '@/lib/audit'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
-  // Rate limiting (fallo silencioso para no bloquear el registro)
   try {
     const { success, reset } = await checkRateLimit(req)
     if (!success) return rateLimitResponse(reset)
@@ -47,6 +46,9 @@ export async function POST(req: Request) {
             planTier: 'FREE',
             status: 'ACTIVE',
           },
+        },
+        tenantUsage: {
+          create: {},
         },
       },
       include: { users: true },

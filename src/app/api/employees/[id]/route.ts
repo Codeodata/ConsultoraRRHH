@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employeeUpdateSchema } from '@/lib/validations'
+import { decrementEmployees } from '@/lib/usage'
 
 async function getEmployee(id: string, tenantId: string) {
   return db.employee.findFirst({ where: { id, tenantId } })
@@ -96,5 +97,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!employee) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
   await db.employee.delete({ where: { id } })
+  await decrementEmployees(session.user.tenantId)
   return NextResponse.json({ message: 'Empleado eliminado' })
 }

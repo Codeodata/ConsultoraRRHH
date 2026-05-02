@@ -2,28 +2,23 @@ import { db } from '@/lib/db'
 import type { PlanTier } from '@prisma/client'
 
 // --- Límites por plan (fuente de verdad) ---
-// FREE:     1 empresa, 15 empleados totales, 2 usuarios
-// STARTER:  5 empresas, empleados ∞, 8 usuarios
-// PRO:      20 empresas, empleados ∞, 25 usuarios
-// BUSINESS: 60 empresas, empleados ∞, usuarios ∞
-//
-// Justificación FREE basada en Supabase free tier:
-//   - DB 500MB / ~2MB por tenant activo = ~250 tenants antes de storage limit
-//   - Queremos margen: forzamos upgrade antes de saturar la infra shared
-//   - 1 empresa + 15 empleados es suficiente para que el usuario pruebe el producto
-//     sin que pueda hacer producción real sin pagar
+// FREE:     1 empresa, 15 empleados totales, 2 usuarios, 50MB storage
+// STARTER:  5 empresas, empleados ∞, 8 usuarios, 2GB storage
+// PRO:      20 empresas, empleados ∞, 25 usuarios, 10GB storage
+// BUSINESS: 60 empresas, empleados ∞, usuarios ∞, storage ∞
 
 export type PlanLimits = {
   maxCompanies: number | null
   maxEmployees: number | null
   maxUsers: number | null
+  maxStorageBytes: number | null
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  FREE:     { maxCompanies: 1,  maxEmployees: 15,   maxUsers: 2    },
-  STARTER:  { maxCompanies: 5,  maxEmployees: null,  maxUsers: 8    },
-  PRO:      { maxCompanies: 20, maxEmployees: null,  maxUsers: 25   },
-  BUSINESS: { maxCompanies: 60, maxEmployees: null,  maxUsers: null },
+  FREE:     { maxCompanies: 1,  maxEmployees: 15,   maxUsers: 2,    maxStorageBytes: 50 * 1024 * 1024 },
+  STARTER:  { maxCompanies: 5,  maxEmployees: null,  maxUsers: 8,    maxStorageBytes: 2 * 1024 * 1024 * 1024 },
+  PRO:      { maxCompanies: 20, maxEmployees: null,  maxUsers: 25,   maxStorageBytes: 10 * 1024 * 1024 * 1024 },
+  BUSINESS: { maxCompanies: 60, maxEmployees: null,  maxUsers: null, maxStorageBytes: null },
 }
 
 export const PLAN_NAMES: Record<PlanTier, string> = {
@@ -106,12 +101,40 @@ export async function canCreateUser(tenantId: string, role?: string): Promise<Li
   return { allowed: true }
 }
 
+export function getPlanLimits(plan: PlanTier): PlanLimits {
+  return PLAN_LIMITS[plan]
+}
+
+export async function canUploadFile(
+  tenantId: string,
+  fileSizeBytes: number,
+): Promise<LimitCheckResult> {
+  const plan = await getActivePlan(tenantId)
+  const { maxStorageBytes } = PLAN_LIMITS[plan]
+  if (maxStorageBytes === null) return { allowed: true }
+
+  const usage = await db.tenantUsage.findUnique({ where: { tenantId } })
+  const currentBytes = Number(usage?.storageUsed ?? 0)
+
+  if (currentBytes + fileSizeBytes > maxStorageBytes) {
+    const maxMb = maxStorageBytes / (1024 * 1024)
+    const label = maxMb >= 1024 ? `${maxMb / 1024}GB` : `${maxMb}MB`
+    return {
+      allowed: false,
+      reason: `Tu plan ${PLAN_NAMES[plan]} permite hasta ${label} de almacenamiento. Actualizá tu plan para subir más archivos.`,
+      upgradeRequired: true,
+      currentPlan: plan,
+    }
+  }
+  return { allowed: true }
+}
+
 export async function getTenantUsage(tenantId: string, role?: string) {
   const plan = await getActivePlan(tenantId)
   const baseLimits = PLAN_LIMITS[plan]
   // OWNER y SUPER_ADMIN no tienen restricciones de límite
   const limits: PlanLimits = (role === 'OWNER' || role === 'SUPER_ADMIN')
-    ? { maxCompanies: null, maxEmployees: null, maxUsers: null }
+    ? { maxCompanies: null, maxEmployees: null, maxUsers: null, maxStorageBytes: null }
     : baseLimits
 
   const [companies, employees, users] = await Promise.all([

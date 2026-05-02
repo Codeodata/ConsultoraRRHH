@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { employeeSchema } from '@/lib/validations'
 import { canCreateEmployee } from '@/lib/plan-limits'
 import { validateCompanyOwnership } from '@/lib/permissions'
+import { incrementEmployees } from '@/lib/usage'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
       isActive: isActive ?? true,
     },
   })
+
+  await incrementEmployees(session.user.tenantId)
 
   return NextResponse.json({ data: employee }, { status: 201 })
 }

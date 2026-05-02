@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { uploadFile } from '@/lib/storage'
+import { canUploadFile } from '@/lib/plan-limits'
+import { addStorageUsage } from '@/lib/usage'
 
 const MAX_SIZE_BYTES = (Number(process.env.MAX_FILE_SIZE_MB) || 10) * 1024 * 1024
 
@@ -29,8 +31,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const tenantId = session.user.tenantId
+
+  const storageCheck = await canUploadFile(tenantId, file.size)
+  if (!storageCheck.allowed) {
+    return NextResponse.json(
+      { error: storageCheck.reason, upgradeRequired: true, currentPlan: storageCheck.currentPlan },
+      { status: 402 },
+    )
+  }
+
   const service = await db.service.findFirst({
-    where: { id: serviceId, tenantId: session.user.tenantId },
+    where: { id: serviceId, tenantId },
   })
   if (!service) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
 
@@ -38,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer()
   const storagePath = await uploadFile(
-    session.user.tenantId,
+    tenantId,
     file.name,
     Buffer.from(bytes),
     file.type || 'application/octet-stream',
@@ -46,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const document = await db.document.create({
     data: {
-      tenantId: session.user.tenantId,
+      tenantId,
       serviceId,
       name,
       description: description || undefined,
@@ -57,6 +69,8 @@ export async function POST(req: NextRequest) {
       version: existingVersionCount + 1,
     },
   })
+
+  await addStorageUsage(tenantId, file.size)
 
   return NextResponse.json({ data: document }, { status: 201 })
 }

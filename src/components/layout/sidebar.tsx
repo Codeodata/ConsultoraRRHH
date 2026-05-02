@@ -17,9 +17,18 @@ import {
   LogOut,
   Zap,
   AlertTriangle,
+  Lock,
   type LucideIcon,
 } from 'lucide-react'
 import type { PlanLimits } from '@/lib/plan-limits'
+
+// Features disponibles por plan (espejo de permissions.ts — no requiere import server-side)
+const PLAN_FEATURES: Record<string, string[]> = {
+  FREE:     [],
+  STARTER:  ['job_descriptions', 'tareas', 'procesos'],
+  PRO:      ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions', 'tareas', 'procesos'],
+  BUSINESS: ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions', 'tareas', 'procesos'],
+}
 
 function isNearLimit(p: PlanInfo) {
   const check = (current: number, max: number | null) => max !== null && current / max >= 0.8
@@ -65,21 +74,22 @@ interface NavItem {
   href: string
   label: string
   icon: LucideIcon
+  feature?: string  // si requiere feature de plan, mostrar candado si no está disponible
 }
 
-const adminNav: NavItem[] = [
+const BASE_ADMIN_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/companies', label: 'Empresas', icon: Building2 },
   { href: '/services', label: 'Servicios', icon: Wrench },
-  { href: '/tasks', label: 'Tareas', icon: ClipboardList },
+  { href: '/tasks', label: 'Tareas', icon: ClipboardList, feature: 'tareas' },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
-  { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow },
+  { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow, feature: 'procesos' },
   { href: '/users', label: 'Usuarios', icon: Users },
   { href: '/billing', label: 'Facturación', icon: CreditCard },
 ]
 
-const rrhhNav: NavItem[] = [
+const RRHH_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/companies', label: 'Empresas', icon: Building2 },
   { href: '/services', label: 'Servicios', icon: Wrench },
@@ -102,7 +112,16 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName, planInfo }: SidebarProps) {
   const pathname = usePathname()
-  const navItems = (role === 'OWNER' || role === 'SUPER_ADMIN') ? adminNav : rrhhNav
+  const plan = planInfo?.plan ?? 'FREE'
+  const availableFeatures = PLAN_FEATURES[plan] ?? []
+
+  const isAdmin = role === 'OWNER' || role === 'SUPER_ADMIN'
+  const baseNav = isAdmin ? BASE_ADMIN_NAV : RRHH_NAV
+
+  // Para SUPER_ADMIN, todas las features están disponibles
+  const hasFeature = (feature?: string) =>
+    !feature || role === 'SUPER_ADMIN' || availableFeatures.includes(feature)
+
   const initials = userName
     .split(' ')
     .map((n) => n[0])
@@ -128,9 +147,26 @@ export function Sidebar({ role, userName, planInfo }: SidebarProps) {
         <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-zinc-600">
           Menú principal
         </p>
-        {navItems.map((item) => {
+        {baseNav.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isLocked = !hasFeature(item.feature)
           const Icon = item.icon
+
+          if (isLocked) {
+            return (
+              <Link
+                key={item.href}
+                href="/billing"
+                title={`Disponible en planes superiores`}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 dark:text-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-all cursor-pointer"
+              >
+                <Icon size={16} className="shrink-0 text-gray-300 dark:text-zinc-700" />
+                <span className="flex-1">{item.label}</span>
+                <Lock size={11} className="shrink-0 text-gray-300 dark:text-zinc-700" />
+              </Link>
+            )
+          }
+
           return (
             <Link
               key={item.href}
@@ -156,7 +192,7 @@ export function Sidebar({ role, userName, planInfo }: SidebarProps) {
       </nav>
 
       {/* Plan widget */}
-      {planInfo && (role === 'OWNER' || role === 'SUPER_ADMIN') && (
+      {planInfo && isAdmin && (
         <div className="px-3 pb-2">
           <Link href="/billing">
             <div className={cn(
