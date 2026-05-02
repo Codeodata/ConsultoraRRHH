@@ -7,6 +7,9 @@ import { canCreateCompany } from '@/lib/plan-limits'
 export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+  }
 
   const companies = await db.company.findMany({
     where: { tenantId: session.user.tenantId },
@@ -20,7 +23,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 

@@ -23,7 +23,6 @@ export async function POST(req: Request) {
   const slugBase = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-')
   const slug = `${slugBase}-${Date.now()}`
 
-  // Transacción: Tenant + User(SUPER_ADMIN) + Subscription(FREE/ACTIVE)
   await db.tenant.create({
     data: {
       name: `${name}`,
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
           name,
           email,
           password: hashedPassword,
-          role: 'SUPER_ADMIN',
+          role: 'OWNER',
         },
       },
       subscription: {

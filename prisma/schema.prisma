@@ -31,7 +31,7 @@ model User {
   emailVerified DateTime?     @db.Timestamptz(6)
   image         String?
   password      String?
-  role          Role          @default(CLIENT)
+  role          Role          @default(RRHH)
   isActive      Boolean       @default(true)
   companyId     String?
   createdAt     DateTime      @default(now()) @db.Timestamptz(6)
@@ -380,8 +380,8 @@ model ProcessOnboardingTask {
 model Subscription {
   id               String             @id @default(cuid())
   tenantId         String             @unique
-  planTier         PlanTier           @default(STARTER)
-  status           SubscriptionStatus @default(TRIAL)
+  planTier         PlanTier           @default(FREE)
+  status           SubscriptionStatus @default(ACTIVE)
   mpPreapprovalId  String?            @unique
   currentPeriodEnd DateTime?          @db.Timestamptz(6)
   trialEndsAt      DateTime?          @db.Timestamptz(6)
@@ -410,9 +410,10 @@ model PaymentRecord {
 }
 
 enum Role {
-  SUPER_ADMIN
-  RRHH
-  CLIENT
+  SUPER_ADMIN  // reservado para admin interno de plataforma, nunca asignado via UI
+  OWNER        // dueño del tenant, asignado en signup
+  RRHH         // staff operativo del tenant
+  CLIENT       // acceso portal externo únicamente
 }
 
 enum ServiceStatus {

@@ -42,7 +42,7 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
   const role = session.user?.role
 
   const isAdminRoute = ADMIN_ROUTES.some((r) => pathname.startsWith(r))
-  if (isAdminRoute && role !== 'SUPER_ADMIN') {
+  if (isAdminRoute && role !== 'OWNER' && role !== 'SUPER_ADMIN') {
     return NextResponse.redirect(new URL('/dashboard', nextUrl))
   }
 

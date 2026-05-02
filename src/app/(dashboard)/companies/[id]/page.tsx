@@ -26,7 +26,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   const { id } = await params
   const session = await auth()
   const tenantId = session!.user.tenantId
-  const isSuperAdmin = session!.user.role === 'SUPER_ADMIN'
+  const isSuperAdmin = ['OWNER', 'SUPER_ADMIN'].includes(session!.user.role)
 
   const company = await db.company.findFirst({
     where: { id, tenantId },

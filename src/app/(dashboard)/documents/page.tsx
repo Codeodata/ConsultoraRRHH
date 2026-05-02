@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Documentos' }
 export default async function DocumentsPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
-  const canDelete = ['SUPER_ADMIN', 'RRHH'].includes(session!.user.role)
+  const canDelete = ['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session!.user.role)
 
   const documents = await db.document.findMany({
     where: { tenantId },

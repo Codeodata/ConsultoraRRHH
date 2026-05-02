@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 
 export async function POST() {
   const session = await auth()
-  if (!session || session.user.role !== 'SUPER_ADMIN') {
+  if (!session || !['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

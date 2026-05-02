@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Nuevo proceso de selección' }
 
 export default async function NewProcesoPage() {
   const session = await auth()
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session!.user.role)) redirect('/procesos')
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session!.user.role)) redirect('/procesos')
 
   const companies = await db.company.findMany({
     where: { tenantId: session!.user.tenantId, isActive: true },

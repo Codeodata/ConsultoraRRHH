@@ -8,7 +8,7 @@ import { canCreateUser } from '@/lib/plan-limits'
 export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (session.user.role !== 'SUPER_ADMIN') {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
@@ -33,7 +33,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (session.user.role !== 'SUPER_ADMIN') {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
@@ -51,8 +51,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
   }
 
-  const existing = await db.user.findUnique({ where: { email: parsed.data.email } })
-  if (existing) return NextResponse.json({ error: 'Email ya registrado' }, { status: 400 })
+  const existing = await db.user.findFirst({
+    where: { email: parsed.data.email, tenantId: session.user.tenantId },
+  })
+  if (existing) return NextResponse.json({ error: 'Email ya registrado en esta organización' }, { status: 400 })
 
   const hashedPassword = await bcrypt.hash(parsed.data.password!, 12)
 

@@ -8,10 +8,10 @@ export const metadata: Metadata = { title: 'Nuevo usuario' }
 
 export default async function NewUserPage() {
   const session = await auth()
-  if (session?.user.role !== 'SUPER_ADMIN') redirect('/dashboard')
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session?.user.role ?? '')) redirect('/dashboard')
 
   const companies = await db.company.findMany({
-    where: { tenantId: session.user.tenantId, isActive: true },
+    where: { tenantId: session!.user.tenantId, isActive: true },
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })

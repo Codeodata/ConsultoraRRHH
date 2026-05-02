@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import type { Metadata } from 'next'
 import { ChevronRight, GitBranch } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { canAccessFeature } from '@/lib/permissions'
 
 export const metadata: Metadata = { title: 'Organigrama' }
 
@@ -70,6 +72,12 @@ function OrgTreeNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
 export default async function OrgChartPage() {
   const session = await auth()
   const tenantId = session!.user.tenantId
+
+  // Organigrama es feature PRO/BUSINESS — verificar en backend
+  if (session!.user.role !== 'SUPER_ADMIN') {
+    const hasFeature = await canAccessFeature(tenantId, 'organigrama')
+    if (!hasFeature) redirect('/billing?upgrade=organigrama')
+  }
 
   const employees = await db.employee.findMany({
     where: { tenantId },

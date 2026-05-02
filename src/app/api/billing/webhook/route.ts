@@ -11,15 +11,27 @@ export async function POST(req: Request) {
   const xRequestId = headersList.get('x-request-id')
   const body = await req.json()
 
-  if (process.env.MP_WEBHOOK_SECRET && xSignature) {
+  const webhookSecret = process.env.MP_WEBHOOK_SECRET
+
+  if (!webhookSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[billing/webhook] MP_WEBHOOK_SECRET no configurado — rechazando request')
+      return NextResponse.json({ error: 'Webhook mal configurado' }, { status: 500 })
+    }
+    // dev/test: se omite la firma (nunca en producción)
+  } else {
+    if (!xSignature) {
+      return NextResponse.json({ error: 'Firma requerida' }, { status: 401 })
+    }
     const ts = xSignature.split(',').find((p) => p.startsWith('ts='))?.split('=')[1]
     const v1 = xSignature.split(',').find((p) => p.startsWith('v1='))?.split('=')[1]
-    if (ts && v1) {
-      const manifest = `id:${body.data?.id ?? ''};request-id:${xRequestId};ts:${ts};`
-      const hmac = crypto.createHmac('sha256', process.env.MP_WEBHOOK_SECRET).update(manifest).digest('hex')
-      if (hmac !== v1) {
-        return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
-      }
+    if (!ts || !v1) {
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+    }
+    const manifest = `id:${body.data?.id ?? ''};request-id:${xRequestId};ts:${ts};`
+    const hmac = crypto.createHmac('sha256', webhookSecret).update(manifest).digest('hex')
+    if (hmac !== v1) {
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
     }
   }
 

@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
@@ -55,7 +55,7 @@ export async function DELETE(
 ) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 

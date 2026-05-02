@@ -51,6 +51,7 @@ export function getStatusColor(status: string): string {
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     SUPER_ADMIN: 'Super Admin',
+    OWNER: 'Administrador',
     RRHH: 'RRHH',
     CLIENT: 'Cliente',
   }

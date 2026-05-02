@@ -16,6 +16,7 @@ export const metadata: Metadata = { title: 'Usuarios' }
 function getRoleBadgeVariant(role: string): 'default' | 'info' | 'secondary' {
   const map: Record<string, 'default' | 'info' | 'secondary'> = {
     SUPER_ADMIN: 'default',
+    OWNER: 'default',
     RRHH: 'info',
     CLIENT: 'secondary',
   }
@@ -25,9 +26,9 @@ function getRoleBadgeVariant(role: string): 'default' | 'info' | 'secondary' {
 export default async function UsersPage() {
   const session = await auth()
 
-  if (session?.user.role !== 'SUPER_ADMIN') redirect('/dashboard')
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session?.user.role ?? '')) redirect('/dashboard')
 
-  const tenantId = session.user.tenantId
+  const tenantId = session!.user.tenantId
 
   const [users, usage] = await Promise.all([
     db.user.findMany({
@@ -35,7 +36,7 @@ export default async function UsersPage() {
       include: { company: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     }),
-    getTenantUsage(tenantId, session.user.role),
+    getTenantUsage(tenantId, session!.user.role),
   ])
 
   const atLimit = usage.limits.maxUsers !== null && usage.usage.users >= usage.limits.maxUsers

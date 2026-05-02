@@ -9,7 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 

@@ -8,7 +8,7 @@ const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
-  role: z.enum(['SUPER_ADMIN', 'RRHH', 'CLIENT']).optional(),
+  role: z.enum(['OWNER', 'RRHH', 'CLIENT']).optional(),
   companyId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 })
@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (session.user.role !== 'SUPER_ADMIN') {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
@@ -52,7 +52,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (session.user.role !== 'SUPER_ADMIN') {
+  if (!['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 

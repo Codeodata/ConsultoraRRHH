@@ -104,7 +104,7 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName, planInfo }: SidebarProps) {
   const pathname = usePathname()
-  const navItems = role === 'SUPER_ADMIN' ? adminNav : rrhhNav
+  const navItems = (role === 'OWNER' || role === 'SUPER_ADMIN') ? adminNav : rrhhNav
   const initials = userName
     .split(' ')
     .map((n) => n[0])
@@ -158,7 +158,7 @@ export function Sidebar({ role, userName, planInfo }: SidebarProps) {
       </nav>
 
       {/* Plan widget */}
-      {planInfo && role === 'SUPER_ADMIN' && (
+      {planInfo && (role === 'OWNER' || role === 'SUPER_ADMIN') && (
         <div className="px-3 pb-2">
           <Link href="/billing">
             <div className={cn(

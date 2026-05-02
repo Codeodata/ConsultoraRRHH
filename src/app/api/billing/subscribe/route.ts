@@ -10,7 +10,7 @@ const schema = z.object({ plan: z.enum(['STARTER', 'PRO', 'BUSINESS'] as const) 
 
 export async function POST(req: Request) {
   const session = await auth()
-  if (!session || session.user.role !== 'SUPER_ADMIN') {
+  if (!session || !['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

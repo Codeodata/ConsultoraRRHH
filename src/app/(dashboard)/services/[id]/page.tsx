@@ -43,7 +43,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       },
     }),
     db.user.findMany({
-      where: { tenantId, role: { in: ['SUPER_ADMIN', 'RRHH'] }, isActive: true },
+      where: { tenantId, role: { in: ['OWNER', 'SUPER_ADMIN', 'RRHH'] }, isActive: true },
       select: { id: true, name: true, email: true },
       orderBy: { name: 'asc' },
     }),

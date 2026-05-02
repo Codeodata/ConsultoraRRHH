@@ -34,7 +34,7 @@ async function main() {
       name: 'Super Admin',
       email: 'admin@consultora.com',
       password: adminPassword,
-      role: Role.SUPER_ADMIN,
+      role: Role.OWNER,
       isActive: true,
     },
   })

@@ -43,7 +43,7 @@ export const userSchema = z.object({
   name: z.string().min(2, 'Nombre requerido'),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres').optional(),
-  role: z.enum(['SUPER_ADMIN', 'RRHH', 'CLIENT']),
+  role: z.enum(['OWNER', 'RRHH', 'CLIENT']),
   companyId: z.string().optional().nullable(),
 })
 

@@ -22,7 +22,7 @@ const STATUS_CONFIG = {
 
 export default async function BillingPage() {
   const session = await auth()
-  if (!session || session.user.role !== 'SUPER_ADMIN') redirect('/dashboard')
+  if (!session || !['OWNER', 'SUPER_ADMIN'].includes(session.user.role)) redirect('/dashboard')
 
   const tenantId = session.user.tenantId
 

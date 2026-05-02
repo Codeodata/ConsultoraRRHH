@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { processSchema } from '@/lib/validations'
+import { validateCompanyOwnership } from '@/lib/permissions'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+  }
 
   const { searchParams } = new URL(req.url)
   const companyId = searchParams.get('companyId')
@@ -29,7 +33,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
+  if (!['OWNER', 'SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
@@ -37,6 +41,11 @@ export async function POST(req: NextRequest) {
   const parsed = processSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+  }
+
+  const companyOwned = await validateCompanyOwnership(session.user.tenantId, parsed.data.companyId)
+  if (!companyOwned) {
+    return NextResponse.json({ error: 'Empresa no válida o no pertenece a tu organización' }, { status: 400 })
   }
 
   const { openedAt, ...rest } = parsed.data
