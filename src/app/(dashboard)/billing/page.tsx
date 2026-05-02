@@ -2,9 +2,11 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { BILLING_PLANS, formatARS } from '@/lib/mercadopago'
+import { getTenantUsage } from '@/lib/plan-limits'
 import { SubscribeButton, CancelButton } from './_components/billing-actions'
 import { Badge } from '@/components/ui/badge'
-import { CreditCard, Building2, Users, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
+import { CreditCard, Building2, Users, UserCheck, CheckCircle2, AlertTriangle, Clock, Zap } from 'lucide-react'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import type { LucideIcon } from 'lucide-react'
 
@@ -24,26 +26,27 @@ export default async function BillingPage() {
 
   const tenantId = session.user.tenantId
 
-  const [subscription, companiesCount, usersCount] = await Promise.all([
+  const [subscription, usage] = await Promise.all([
     db.subscription.findUnique({
       where: { tenantId },
       include: { payments: { orderBy: { createdAt: 'desc' }, take: 10 } },
     }),
-    db.company.count({ where: { tenantId, isActive: true } }),
-    db.user.count({ where: { tenantId, isActive: true } }),
+    getTenantUsage(tenantId),
   ])
 
+  const isFree = !subscription || subscription.planTier === 'FREE'
   const isActive =
     subscription?.status === 'ACTIVE' ||
     subscription?.status === 'PAST_DUE' ||
     subscription?.status === 'PAUSED'
+  const isPaidActive = isActive && !isFree
   const currentPlan =
     subscription?.planTier ? BILLING_PLANS[subscription.planTier as keyof typeof BILLING_PLANS] : null
   const statusConfig = subscription
     ? STATUS_CONFIG[subscription.status as keyof typeof STATUS_CONFIG]
     : null
   const showPlanCards =
-    !subscription || subscription.status === 'CANCELLED' || subscription.status === 'TRIAL'
+    isFree || !subscription || subscription.status === 'CANCELLED' || subscription.status === 'TRIAL'
 
   return (
     <div className="p-6 space-y-6">
@@ -82,8 +85,33 @@ export default async function BillingPage() {
         </div>
       )}
 
-      {/* Suscripción activa */}
-      {isActive && currentPlan && subscription && statusConfig && (
+      {/* Plan FREE activo */}
+      {isFree && (
+        <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-zinc-800">
+                <Zap size={18} className="text-gray-500 dark:text-zinc-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-900 dark:text-zinc-100">Plan Free</p>
+                  <Badge variant="secondary">Activo</Badge>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">Gratis para siempre</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+            <UsageMeter icon={Building2} label="Empresas" current={usage.usage.companies} max={usage.limits.maxCompanies} />
+            <UsageMeter icon={UserCheck} label="Empleados" current={usage.usage.employees} max={usage.limits.maxEmployees} />
+            <UsageMeter icon={Users} label="Usuarios" current={usage.usage.users} max={usage.limits.maxUsers} />
+          </div>
+        </div>
+      )}
+
+      {/* Suscripción paga activa */}
+      {isPaidActive && currentPlan && subscription && statusConfig && (
         <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -116,35 +144,26 @@ export default async function BillingPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
-            <UsageMeter
-              icon={Building2}
-              label="Empresas"
-              current={companiesCount}
-              max={currentPlan.maxCompanies}
-            />
-            <UsageMeter
-              icon={Users}
-              label="Usuarios activos"
-              current={usersCount}
-              max={currentPlan.maxUsers}
-            />
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+            <UsageMeter icon={Building2} label="Empresas" current={usage.usage.companies} max={usage.limits.maxCompanies} />
+            <UsageMeter icon={UserCheck} label="Empleados" current={usage.usage.employees} max={usage.limits.maxEmployees} />
+            <UsageMeter icon={Users} label="Usuarios" current={usage.usage.users} max={usage.limits.maxUsers} />
           </div>
         </div>
       )}
 
-      {/* Cards de planes */}
+      {/* Cards de planes pagos */}
       {showPlanCards && (
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-            {subscription?.status === 'TRIAL'
-              ? 'Elegí tu plan para comenzar'
-              : 'Planes disponibles'}
+            Planes disponibles
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Object.values(BILLING_PLANS).map((plan) => (
-              <PlanCard key={plan.tier} plan={plan} recommended={plan.tier === 'BUSINESS'} />
-            ))}
+            {(Object.values(BILLING_PLANS) as Array<typeof BILLING_PLANS[keyof typeof BILLING_PLANS]>)
+              .filter((p) => p.tier !== 'FREE')
+              .map((plan) => (
+                <PlanCard key={plan.tier} plan={plan} recommended={plan.tier === 'BUSINESS'} />
+              ))}
           </div>
           <p className="text-xs text-gray-400 dark:text-zinc-500 text-center">
             Los pagos se procesan a través de MercadoPago. Podés cancelar cuando quieras.
@@ -228,7 +247,7 @@ function PlanCard({
         ))}
       </ul>
 
-      <SubscribeButton plan={plan.tier as 'STARTER' | 'PRO' | 'BUSINESS'} />
+      <SubscribeButton plan={plan.tier as 'STARTER' | 'PRO' | 'BUSINESS'} label={`Elegir ${plan.name}`} />
     </div>
   )
 }

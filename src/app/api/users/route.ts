@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userSchema } from '@/lib/validations'
 import bcrypt from 'bcryptjs'
+import { canCreateUser } from '@/lib/plan-limits'
 
 export async function GET() {
   const session = await auth()
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (session.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+  }
+
+  const limitCheck = await canCreateUser(session.user.tenantId)
+  if (!limitCheck.allowed) {
+    return NextResponse.json(
+      { error: limitCheck.reason, upgradeRequired: true, currentPlan: limitCheck.currentPlan },
+      { status: 402 }
+    )
   }
 
   const body = await req.json()

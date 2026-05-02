@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { mpPreApproval, BILLING_PLANS } from '@/lib/mercadopago'
 import { z } from 'zod'
 
-const schema = z.object({ plan: z.enum(['STARTER', 'PRO', 'BUSINESS']) })
+const schema = z.object({ plan: z.enum(['STARTER', 'PRO', 'BUSINESS'] as const) })
 
 export async function POST(req: Request) {
   const session = await auth()

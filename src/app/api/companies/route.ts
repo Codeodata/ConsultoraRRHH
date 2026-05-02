@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { companySchema } from '@/lib/validations'
+import { canCreateCompany } from '@/lib/plan-limits'
 
 export async function GET() {
   const session = await auth()
@@ -21,6 +22,14 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!['SUPER_ADMIN', 'RRHH'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+  }
+
+  const limitCheck = await canCreateCompany(session.user.tenantId)
+  if (!limitCheck.allowed) {
+    return NextResponse.json(
+      { error: limitCheck.reason, upgradeRequired: true, currentPlan: limitCheck.currentPlan },
+      { status: 402 }
+    )
   }
 
   const body = await req.json()

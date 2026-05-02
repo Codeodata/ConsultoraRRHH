@@ -6,15 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import { UpgradePrompt } from '@/components/billing/upgrade-prompt'
 
 export function CompanyForm({ company }: { company?: any }) {
   const router = useRouter()
   const [error, setError] = useState('')
+  const [upgradeMsg, setUpgradeMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
+    setUpgradeMsg('')
     setLoading(true)
 
     const fd = new FormData(e.currentTarget)
@@ -33,6 +36,10 @@ export function CompanyForm({ company }: { company?: any }) {
       const data = await res.json()
 
       if (!res.ok) {
+        if (res.status === 402 && data.upgradeRequired) {
+          setUpgradeMsg(data.error)
+          return
+        }
         setError(data.error ?? 'Error al guardar la empresa')
         return
       }
@@ -74,6 +81,8 @@ export function CompanyForm({ company }: { company?: any }) {
           <Input id="address" name="address" defaultValue={company?.address} placeholder="Av. Principal 123, Santiago" />
         </div>
       </div>
+
+      {upgradeMsg && <UpgradePrompt message={upgradeMsg} />}
 
       {error && (
         <div className="flex items-center gap-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">

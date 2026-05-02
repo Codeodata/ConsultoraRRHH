@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LoginForm } from './login-form'
+import { RegisterForm } from './register-form'
 
-export const metadata: Metadata = { title: 'Iniciar Sesión' }
+export const metadata: Metadata = { title: 'Crear cuenta' }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-zinc-950">
       {/* Panel izquierdo decorativo */}
@@ -19,22 +19,22 @@ export default function LoginPage() {
         <div className="space-y-6">
           <div className="space-y-3">
             <h2 className="text-3xl font-bold text-white leading-tight">
-              Gestión integral<br />para tu consultora
+              Empezá gratis,<br />escalá cuando quieras
             </h2>
             <p className="text-brand-200 text-base leading-relaxed max-w-sm">
-              Administra empresas, servicios y documentos en un solo lugar. Seguimiento en tiempo real para tus clientes.
+              Registrá tu consultora en segundos. Sin tarjeta de crédito. Pasá a un plan pago cuando tu negocio crezca.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {[
-              { label: 'Empresas', value: 'clientes' },
-              { label: 'Documentos', value: 'centralizados' },
-              { label: 'Progreso', value: 'en tiempo real' },
+              { label: 'Plan Free', desc: '1 empresa · 15 empleados · gratis para siempre' },
+              { label: 'Plan Starter', desc: '5 empresas · 8 usuarios · $90.000 ARS/mes' },
+              { label: 'Plan Business', desc: '60 empresas · todo ilimitado · $190.000 ARS/mes' },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl bg-white/10 p-4">
+              <div key={item.label} className="rounded-xl bg-white/10 px-4 py-3">
                 <p className="text-white font-semibold text-sm">{item.label}</p>
-                <p className="text-brand-200 text-xs mt-0.5">{item.value}</p>
+                <p className="text-brand-200 text-xs mt-0.5">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -55,23 +55,21 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-50">Bienvenido de vuelta</h1>
-            <p className="text-sm text-gray-500 dark:text-zinc-400">Ingresa tus credenciales para continuar</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-50">Crear cuenta</h1>
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
+              Comenzá con el plan Free, sin tarjeta de crédito
+            </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm dark:shadow-none">
-            <LoginForm />
+            <RegisterForm />
           </div>
 
           <p className="text-center text-sm text-gray-500 dark:text-zinc-400">
-            ¿No tenés cuenta?{' '}
-            <Link href="/register" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
-              Registrate gratis
+            ¿Ya tenés cuenta?{' '}
+            <Link href="/login" className="text-brand-600 dark:text-brand-400 hover:underline font-medium">
+              Iniciá sesión
             </Link>
-          </p>
-
-          <p className="text-center text-xs text-gray-400 dark:text-zinc-500">
-            Demo: <span className="font-mono">admin@consultora.com</span> / <span className="font-mono">Admin1234!</span>
           </p>
         </div>
       </div>

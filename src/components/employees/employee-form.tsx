@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { UpgradePrompt } from '@/components/billing/upgrade-prompt'
 
 const selectClass = cn(
   'flex h-9 w-full rounded-lg border border-gray-300 dark:border-zinc-700',
@@ -52,6 +53,7 @@ interface EmployeeFormProps {
 export function EmployeeForm({ companies, employees, employee }: EmployeeFormProps) {
   const router = useRouter()
   const [error, setError] = useState('')
+  const [upgradeMsg, setUpgradeMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [companyId, setCompanyId] = useState(employee?.companyId ?? '')
 
@@ -94,6 +96,10 @@ export function EmployeeForm({ companies, employees, employee }: EmployeeFormPro
 
       const data = await res.json()
       if (!res.ok) {
+        if (res.status === 402 && data.upgradeRequired) {
+          setUpgradeMsg(data.error)
+          return
+        }
         setError(data.error ?? 'Error al guardar el empleado')
         return
       }
@@ -238,6 +244,8 @@ export function EmployeeForm({ companies, employees, employee }: EmployeeFormPro
           )}
         </div>
       </div>
+
+      {upgradeMsg && <UpgradePrompt message={upgradeMsg} />}
 
       {error && (
         <div className="flex items-center gap-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">

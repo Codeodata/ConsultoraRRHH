@@ -485,6 +485,7 @@ enum SubscriptionStatus {
 }
 
 enum PlanTier {
+  FREE
   STARTER
   PRO
   BUSINESS

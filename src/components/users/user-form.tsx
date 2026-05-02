@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { UpgradePrompt } from '@/components/billing/upgrade-prompt'
 
 interface UserFormProps {
   companies: { id: string; name: string }[]
@@ -11,6 +12,7 @@ interface UserFormProps {
 export function UserForm({ companies, user }: UserFormProps) {
   const router = useRouter()
   const [error, setError] = useState('')
+  const [upgradeMsg, setUpgradeMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState(user?.role ?? 'CLIENT')
 
@@ -42,6 +44,10 @@ export function UserForm({ companies, user }: UserFormProps) {
 
       const data = await res.json()
       if (!res.ok) {
+        if (res.status === 402 && data.upgradeRequired) {
+          setUpgradeMsg(data.error)
+          return
+        }
         setError(data.error ?? 'Error al guardar')
         return
       }
@@ -107,6 +113,8 @@ export function UserForm({ companies, user }: UserFormProps) {
           </select>
         </div>
       )}
+
+      {upgradeMsg && <UpgradePrompt message={upgradeMsg} />}
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
