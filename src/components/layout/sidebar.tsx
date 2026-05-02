@@ -30,12 +30,19 @@ const PLAN_FEATURES: Record<string, string[]> = {
   BUSINESS: ['analytics', 'organigrama', 'performance_evaluations', 'job_descriptions', 'tareas', 'procesos'],
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`
+  if (bytes >= 1024 * 1024) return `${Math.round(bytes / (1024 * 1024))}MB`
+  return `${Math.round(bytes / 1024)}KB`
+}
+
 function isNearLimit(p: PlanInfo) {
   const check = (current: number, max: number | null) => max !== null && current / max >= 0.8
   return (
     check(p.usage.companies, p.limits.maxCompanies) ||
     check(p.usage.employees, p.limits.maxEmployees) ||
-    check(p.usage.users, p.limits.maxUsers)
+    check(p.usage.users, p.limits.maxUsers) ||
+    check(p.usage.storageBytes, p.limits.maxStorageBytes)
   )
 }
 
@@ -44,11 +51,12 @@ function isAtLimit(p: PlanInfo) {
   return (
     check(p.usage.companies, p.limits.maxCompanies) ||
     check(p.usage.employees, p.limits.maxEmployees) ||
-    check(p.usage.users, p.limits.maxUsers)
+    check(p.usage.users, p.limits.maxUsers) ||
+    check(p.usage.storageBytes, p.limits.maxStorageBytes)
   )
 }
 
-function MiniBar({ current, max, label }: { current: number; max: number; label: string }) {
+function MiniBar({ current, max, label, valueLabel }: { current: number; max: number; label: string; valueLabel?: string }) {
   const pct = Math.min(Math.round((current / max) * 100), 100)
   const isOver = pct >= 100
   const isWarn = pct >= 80
@@ -57,7 +65,7 @@ function MiniBar({ current, max, label }: { current: number; max: number; label:
       <div className="flex justify-between text-[10px] text-gray-500 dark:text-zinc-400">
         <span>{label}</span>
         <span className={cn('font-medium', isOver ? 'text-red-600 dark:text-red-400' : isWarn ? 'text-amber-600 dark:text-amber-400' : '')}>
-          {current}/{max}
+          {valueLabel ?? `${current}/${max}`}
         </span>
       </div>
       <div className="h-1 w-full rounded-full bg-gray-200 dark:bg-zinc-700">
@@ -101,7 +109,7 @@ interface PlanInfo {
   plan: string
   planName: string
   limits: PlanLimits
-  usage: { companies: number; employees: number; users: number }
+  usage: { companies: number; employees: number; users: number; storageBytes: number }
 }
 
 interface SidebarProps {
@@ -236,6 +244,14 @@ export function Sidebar({ role, userName, planInfo }: SidebarProps) {
                   current={planInfo.usage.users}
                   max={planInfo.limits.maxUsers}
                   label="usuarios"
+                />
+              )}
+              {planInfo.limits.maxStorageBytes !== null && (
+                <MiniBar
+                  current={planInfo.usage.storageBytes}
+                  max={planInfo.limits.maxStorageBytes}
+                  label="almacenamiento"
+                  valueLabel={`${formatBytes(planInfo.usage.storageBytes)}/${formatBytes(planInfo.limits.maxStorageBytes)}`}
                 />
               )}
             </div>

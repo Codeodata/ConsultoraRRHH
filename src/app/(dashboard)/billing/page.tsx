@@ -5,7 +5,7 @@ import { BILLING_PLANS, formatARS } from '@/lib/mercadopago'
 import { getTenantUsage } from '@/lib/plan-limits'
 import { SubscribeButton, CancelButton } from './_components/billing-actions'
 import { Badge } from '@/components/ui/badge'
-import { CreditCard, Building2, Users, UserCheck, CheckCircle2, AlertTriangle, Clock, Zap } from 'lucide-react'
+import { CreditCard, Building2, Users, UserCheck, CheckCircle2, AlertTriangle, Clock, Zap, HardDrive } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import type { LucideIcon } from 'lucide-react'
@@ -102,10 +102,11 @@ export default async function BillingPage() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
             <UsageMeter icon={Building2} label="Empresas" current={usage.usage.companies} max={usage.limits.maxCompanies} />
             <UsageMeter icon={UserCheck} label="Empleados" current={usage.usage.employees} max={usage.limits.maxEmployees} />
             <UsageMeter icon={Users} label="Usuarios" current={usage.usage.users} max={usage.limits.maxUsers} />
+            <StorageMeter icon={HardDrive} label="Almacenamiento" currentBytes={usage.usage.storageBytes} maxBytes={usage.limits.maxStorageBytes} />
           </div>
         </div>
       )}
@@ -144,10 +145,11 @@ export default async function BillingPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
             <UsageMeter icon={Building2} label="Empresas" current={usage.usage.companies} max={usage.limits.maxCompanies} />
             <UsageMeter icon={UserCheck} label="Empleados" current={usage.usage.employees} max={usage.limits.maxEmployees} />
             <UsageMeter icon={Users} label="Usuarios" current={usage.usage.users} max={usage.limits.maxUsers} />
+            <StorageMeter icon={HardDrive} label="Almacenamiento" currentBytes={usage.usage.storageBytes} maxBytes={usage.limits.maxStorageBytes} />
           </div>
         </div>
       )}
@@ -248,6 +250,77 @@ function PlanCard({
       </ul>
 
       <SubscribeButton plan={plan.tier as 'STARTER' | 'PRO' | 'BUSINESS'} label={`Elegir ${plan.name}`} />
+    </div>
+  )
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`
+  if (bytes >= 1024 * 1024) return `${Math.round(bytes / (1024 * 1024))}MB`
+  return `${Math.round(bytes / 1024)}KB`
+}
+
+function StorageMeter({
+  icon: Icon,
+  label,
+  currentBytes,
+  maxBytes,
+}: {
+  icon: LucideIcon
+  label: string
+  currentBytes: number
+  maxBytes: number | null
+}) {
+  if (maxBytes === null) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-zinc-400">
+            <Icon size={13} />
+            <span>{label}</span>
+          </div>
+          <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+            {formatBytes(currentBytes)} <span className="text-gray-400 dark:text-zinc-500 font-normal">/ ilimitado</span>
+          </span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-zinc-800">
+          <div className="h-1.5 w-full rounded-full bg-brand-200 dark:bg-brand-900/40" />
+        </div>
+      </div>
+    )
+  }
+
+  const pct = Math.min(Math.round((currentBytes / maxBytes) * 100), 100)
+  const isWarning = pct >= 80
+  const isOver = pct >= 100
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-zinc-400">
+          <Icon size={13} />
+          <span>{label}</span>
+        </div>
+        <span
+          className={`text-sm font-medium ${
+            isOver
+              ? 'text-red-600 dark:text-red-400'
+              : isWarning
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-gray-900 dark:text-zinc-100'
+          }`}
+        >
+          {formatBytes(currentBytes)} / {formatBytes(maxBytes)}
+        </span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-zinc-800">
+        <div
+          className={`h-1.5 rounded-full transition-all ${
+            isOver ? 'bg-red-500' : isWarning ? 'bg-amber-500' : 'bg-brand-500'
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   )
 }

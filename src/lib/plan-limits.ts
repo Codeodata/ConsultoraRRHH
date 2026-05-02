@@ -137,16 +137,17 @@ export async function getTenantUsage(tenantId: string, role?: string) {
     ? { maxCompanies: null, maxEmployees: null, maxUsers: null, maxStorageBytes: null }
     : baseLimits
 
-  const [companies, employees, users] = await Promise.all([
+  const [companies, employees, users, tenantUsage] = await Promise.all([
     db.company.count({ where: { tenantId, isActive: true } }),
     db.employee.count({ where: { tenantId, isActive: true } }),
     db.user.count({ where: { tenantId, isActive: true } }),
+    db.tenantUsage.findUnique({ where: { tenantId }, select: { storageUsed: true } }),
   ])
 
   return {
     plan,
     planName: PLAN_NAMES[plan],
     limits,
-    usage: { companies, employees, users },
+    usage: { companies, employees, users, storageBytes: Number(tenantUsage?.storageUsed ?? 0) },
   }
 }
