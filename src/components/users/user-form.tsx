@@ -14,7 +14,7 @@ export function UserForm({ companies, user }: UserFormProps) {
   const [error, setError] = useState('')
   const [upgradeMsg, setUpgradeMsg] = useState('')
   const [loading, setLoading] = useState(false)
-  const [role, setRole] = useState(user?.role ?? 'CLIENT')
+  const [role, setRole] = useState(user?.role ?? 'RRHH')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()

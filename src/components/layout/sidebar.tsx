@@ -83,10 +83,8 @@ const rrhhNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/companies', label: 'Empresas', icon: Building2 },
   { href: '/services', label: 'Servicios', icon: Wrench },
-  { href: '/tasks', label: 'Tareas', icon: ClipboardList },
   { href: '/documents', label: 'Documentos', icon: FileText },
   { href: '/employees', label: 'Empleados', icon: UserSquare2 },
-  { href: '/procesos', label: 'Procesos', icon: GitPullRequestArrow },
 ]
 
 interface PlanInfo {

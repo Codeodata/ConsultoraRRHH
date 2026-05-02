@@ -4,11 +4,14 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/register', '/api/auth', '/api/billing/webhook']
 
-const ADMIN_ROUTES = ['/users', '/api/users', '/billing', '/api/billing']
+const ADMIN_ROUTES = [
+  '/users', '/api/users',
+  '/billing', '/api/billing',
+  '/tasks', '/procesos', '/api/processes',
+]
 const RRHH_OR_ADMIN_ROUTES = [
   '/companies',
   '/services',
-  '/tasks',
   '/documents',
   '/employees',
   '/api/companies',
