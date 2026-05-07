@@ -1,300 +1,171 @@
-## Acceso al sistema
+# ConsultoraRRHH
 
-Al ingresar a `http://localhost:3000` serás redirigido al login. El seed cargó tres usuarios de prueba:
+[![CI](https://github.com/Codeodata/ConsultoraRRHH/actions/workflows/ci.yml/badge.svg)](https://github.com/Codeodata/ConsultoraRRHH/actions)
+![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-c
----
+> Multi-tenant HR Tech SaaS for consulting firms. Centralizes service management, employee records, and client portals — with an active roadmap toward AI-powered ATS and workflow automation.
 
-## Cómo usar el sistema
+## Product Overview
 
-### Panel de la consultora (Super Admin / RRHH)
+HR consulting firms manage their operations across disconnected tools: spreadsheets for employee records, email threads for service updates, shared drives for documents. ConsultoraRRHH replaces all of that with a single platform where the consulting firm, their clients, and the HR team operate from the same source of truth.
 
-Después de iniciar sesión como admin o RRHH, verás el panel principal con un menú lateral.
+**Current state:** Production-ready MVP with multi-tenancy, role-based access, and full service/employee lifecycle management.  
+**Direction:** Evolving into an AI-powered ATS platform with automated candidate screening, workflow automation via n8n, and deployment scaling on AWS EKS.
 
-#### Dashboard
+## Architecture
 
-Muestra un resumen con:
-- Total de empresas clientes registradas
-- Total de servicios
-- Servicios en proceso
-- Servicios finalizados
-- Tabla de los últimos servicios actualizados
-
-#### Empresas
-
-1. Ir a **Empresas** en el menú lateral
-2. Clic en **+ Nueva empresa**
-3. Completar el formulario (nombre, RUT, email, contacto, etc.)
-4. Guardar
-
-Desde el detalle de cada empresa podés ver todos sus servicios y crear nuevos.
-
-#### Servicios
-
-1. Ir a **Servicios** en el menú lateral
-2. Clic en **+ Nuevo servicio**
-3. Elegir la empresa cliente, nombre, descripción y fechas
-4. Guardar
-
-Desde el detalle de un servicio podés:
-- Ver el progreso actual (barra de progreso)
-- **Actualizar el estado** (Pendiente / En Proceso / Finalizado)
-- **Actualizar el porcentaje** de avance (0 a 100)
-- **Subir documentos** asociados al servicio
-- **Descargar documentos** existentes
-
-##### Estados disponibles para un servicio
-
-| Estado | Descripción |
-|--------|-------------|
-| Pendiente | El trabajo aún no comenzó |
-| En Proceso | Trabajo en curso |
-| Finalizado | Servicio completado |
-
-#### Documentos
-
-La sección **Documentos** muestra todos los archivos subidos en el sistema, con filtro por servicio y empresa. Desde ahí podés descargar cualquier documento.
-
-Para **subir un documento**:
-1. Ir al detalle de un servicio (`/services/[id]`)
-2. En la sección "Documentos", completar nombre y seleccionar el archivo
-3. Clic en **↑ Subir documento**
-
-El sistema guarda el archivo en la carpeta `/uploads/{tenantId}/` y registra la versión automáticamente.
-
-#### Gestión de Personas — Empleados
-
-La sección **Empleados** (`/employees`) permite administrar el legajo digital de cada persona.
-
-##### Listado de empleados
-
-La tabla muestra por fila: nombre, cargo, departamento, empresa, a quién reporta, fecha de ingreso y estado (activo/inactivo). Hacer clic en cualquier fila navega al perfil completo del empleado.
-
-##### Perfil del empleado
-
-El perfil (`/employees/[id]`) centraliza toda la información en un solo lugar:
-
-- **Datos personales**: DNI/RUT, fecha de nacimiento, lugar de residencia, género, correo laboral, correo personal, teléfono, cargo, departamento y fecha de ingreso.
-- **Jerarquía**: muestra a quién reporta el empleado, con link directo al perfil del superior.
-- **Avatar**: inicial del nombre con overlay para edición de foto.
-- **Estado**: badge de Activo / Inactivo editable.
-
-##### Pestaña de Objetivos (Performance)
-
-Desde el perfil, la sección **Objetivos** permite gestionar metas individuales:
-
-| Acción | Descripción |
-|--------|-------------|
-| Crear objetivo | Nombre, fecha de inicio y fecha de fin |
-| Cambiar estado | Activo → Cerrado → Archivado |
-| Eliminar | Borrado permanente con confirmación |
-| Filtrar | Vista por estado (Activo / Cerrado / Archivado) |
-
-Las pestañas **Evaluación de desempeño** y **Planes de desarrollo** están disponibles como estructura base para futuras extensiones.
-
-##### Documentos del empleado
-
-Cada empleado tiene su propio gestor de archivos independiente del módulo de servicios:
-
-- Subir archivos desde el perfil (PDF, imágenes, Word, Excel, etc.)
-- Ver nombre, tamaño y fecha de carga con ícono según tipo de archivo
-- Descargar o eliminar cualquier documento
-- Los archivos se guardan en `/uploads/{tenantId}/employees/`
-
-##### Formulario de edición
-
-El formulario (`/employees/[id]/edit`) incluye los siguientes campos adicionales respecto a la versión anterior:
-
-- Correo personal
-- Fecha de nacimiento
-- Lugar de residencia
-- Género (Masculino / Femenino / No binario / Prefiero no decir)
-
-#### Usuarios (solo Super Admin)
-
-1. Ir a **Usuarios** en el menú lateral
-2. Clic en **+ Nuevo usuario**
-3. Completar nombre, email, contraseña y asignar rol
-4. Si el rol es **Cliente**, asignar la empresa correspondiente
-
----
-
-### Portal del cliente
-
-Los usuarios con rol **Cliente** ven una interfaz simplificada al iniciar sesión.
-
-El portal muestra:
-- Resumen de servicios de su empresa (pendientes, en proceso, finalizados)
-- Lista de todos los servicios con estado y progreso
-- Detalle de cada servicio con descripción y fechas
-- Documentos disponibles para descargar
-
-El cliente **no puede** crear ni editar ningún dato. Solo consulta y descarga.
-
----
-
-## Flujo de trabajo típico
+Multi-tenant from day one — every table carries `tenant_id`, ensuring complete data isolation between consulting firms on a shared infrastructure.
 
 ```
-1. Admin crea una empresa cliente
-      ↓
-2. Admin crea un usuario con rol Cliente y lo asigna a esa empresa
-      ↓
-3. RRHH crea un servicio para esa empresa
-      ↓
-4. RRHH actualiza el estado y progreso del servicio a medida que avanza
-      ↓
-5. RRHH sube documentos al servicio (propuestas, informes, contratos)
-      ↓
-6. Cliente ingresa a su portal y puede ver el progreso y descargar los documentos
+Tenant (consulting firm)
+  ├── Users           (Super Admin / RRHH / Client roles)
+  ├── Companies       (client companies)
+  │     ├── Services  (engagements with progress tracking)
+  │     │     └── Documents
+  │     └── Employees
+  │           ├── Goals     (performance objectives)
+  │           └── Documents (employee records)
+  └── [ATS] Candidates → Pipeline → AI Screening  ← in progress
 ```
 
----
+## Features
 
-## Comandos útiles
+### Consulting Panel (Admin / RRHH)
+- **Dashboard** — KPIs: active companies, services by status, recent activity
+- **Companies** — full CRUD, linked to services and employees
+- **Services** — engagement tracking with progress bar, status workflow, document uploads
+- **Employees** — digital HR file: personal data, org hierarchy, performance goals, document manager
+- **Users** — role assignment (Super Admin / RRHH / Client)
+
+### Client Portal
+- Read-only view of their company's services and progress
+- Document download for contracts, reports, proposals
+- No edit access — clean separation of concerns
+
+## Roadmap
+
+### Now — Production deployment
+- [ ] File storage migration to AWS S3 / Cloudflare R2
+- [ ] Managed PostgreSQL (Neon / RDS)
+- [ ] Deploy on AWS EKS via [eks-platform-aws](https://github.com/Codeodata/eks-platform-aws)
+- [ ] Custom domain + SSL
+- [ ] GitHub Actions CI/CD pipeline
+
+### Next — Pre-sales critical
+- [ ] Tenant self-registration (onboarding flow)
+- [ ] Password recovery via email
+- [ ] Email notifications (document upload, status change, new user)
+- [ ] Audit logs
+
+### Core product — ATS module
+- [ ] Candidate pipeline (kanban by hiring stage)
+- [ ] Job postings management
+- [ ] AI-powered CV screening (integrated with local LLM stack via [n8n-local-ai-stack](https://github.com/Codeodata/n8n-local-ai-stack))
+- [ ] Automated candidate scoring and ranking
+- [ ] Interview scheduling with calendar sync
+
+### Scaling
+- [ ] Workflow automation engine (n8n integration)
+- [ ] Tenant admin panel (manage all consulting firms)
+- [ ] White-label per tenant (logo, colors)
+- [ ] Export reports (PDF / Excel)
+- [ ] Billing & subscription management
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) + TypeScript |
+| Database | PostgreSQL via Prisma ORM |
+| Auth | NextAuth.js with role-based middleware |
+| Styling | Tailwind CSS |
+| Containerization | Docker + Docker Compose |
+| File storage | Local filesystem → S3 (roadmap) |
+| CI/CD | GitHub Actions |
+| Scaling target | AWS EKS (Terraform) |
+
+## Infrastructure
+
+The production scaling strategy connects directly to [eks-platform-aws](https://github.com/Codeodata/eks-platform-aws) — a production-grade EKS cluster with Terraform, autoscaling node groups, and Prometheus + Grafana monitoring. The ATS automation layer will use [n8n-local-ai-stack](https://github.com/Codeodata/n8n-local-ai-stack) for AI-powered workflows.
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Docker
+
+### Run locally
 
 ```bash
-# Desarrollo
-npm run dev              # inicia el servidor en localhost:3000
+# Clone and install
+git clone https://github.com/Codeodata/ConsultoraRRHH.git
+cd ConsultoraRRHH
+npm install
 
-# Base de datos
-npm run db:studio        # abre Prisma Studio (interfaz visual de la BD)
-npm run db:seed          # recarga los datos de prueba
-npm run db:reset         # borra todo y vuelve a crear con datos de prueba
+# Start database
+npm run docker:up
 
-# Docker
-npm run docker:up        # inicia PostgreSQL
-npm run docker:down      # detiene PostgreSQL
-npm run docker:logs      # muestra los logs de la BD
-```
+# Set up environment
+cp .env.example .env.local
 
-### Prisma Studio
-
-Si querés explorar la base de datos visualmente:
-
-```bash
-npm run db:studio
-# Abre http://localhost:5555
-```
-
----
-
-## Estructura del proyecto
-
-```
-consultora-saas/
-├── docker-compose.yml          # Contenedor PostgreSQL
-├── .env.local                  # Variables de entorno (local)
-├── prisma/
-│   ├── schema.prisma           # Modelo de datos
-│   └── seed.ts                 # Datos iniciales de prueba
-├── middleware.ts               # Protección de rutas por rol
-├── uploads/                    # Archivos subidos (generado automáticamente)
-└── src/
-    ├── app/
-    │   ├── (auth)/login/           # Página de login
-    │   ├── (dashboard)/            # Panel consultora
-    │   │   ├── dashboard/          # Dashboard principal
-    │   │   ├── companies/          # Gestión de empresas
-    │   │   ├── services/           # Gestión de servicios
-    │   │   ├── documents/          # Listado de documentos
-    │   │   ├── employees/          # Gestión de personas
-    │   │   │   ├── page.tsx        # Listado de empleados
-    │   │   │   └── [id]/
-    │   │   │       ├── page.tsx    # Perfil del empleado
-    │   │   │       └── edit/       # Edición del empleado
-    │   │   └── users/              # Gestión de usuarios
-    │   ├── (portal)/portal/        # Portal del cliente
-    │   └── api/
-    │       ├── employees/[id]/
-    │       │   ├── route.ts        # CRUD del empleado
-    │       │   ├── goals/          # Objetivos (CRUD + cambio de estado)
-    │       │   └── documents/      # Documentos (subida, descarga, borrado)
-    │       └── ...                 # Resto de endpoints REST
-    ├── components/
-    │   ├── employees/
-    │   │   ├── employees-table.tsx     # Tabla de empleados (client component)
-    │   │   ├── employee-form.tsx       # Formulario de alta/edición
-    │   │   ├── employee-doc-manager.tsx# Gestor de archivos del empleado
-    │   │   └── performance-tabs.tsx    # Objetivos y desempeño
-    │   └── ...                         # Otros componentes reutilizables
-    ├── lib/
-    │   ├── auth.ts             # Configuración de autenticación
-    │   ├── db.ts               # Cliente de base de datos
-    │   ├── validations.ts      # Validación de formularios (Zod)
-    │   └── utils.ts            # Funciones utilitarias
-    └── types/                  # Tipos TypeScript
-```
-
----
-
-## Modelo de datos
-
-```
-Tenant (consultora)
-  └── Users (admin, RRHH, clientes)
-  └── Companies (empresas clientes)
-        ├── Services (servicios contratados)
-        │     └── Documents (archivos del servicio)
-        └── Employees (empleados)
-              ├── Employee → reportsTo → Employee   (jerarquía)
-              ├── EmployeeGoal (objetivos: ACTIVE | CLOSED | ARCHIVED)
-              └── EmployeeDocument (archivos del legajo)
-```
-
-Todas las tablas incluyen `tenant_id`, lo que garantiza que cada consultora solo ve sus propios datos.
-
----
-
-## Solución de problemas comunes
-
-**"Cannot connect to database"**
-```bash
-docker compose up -d
-# Esperar 5 segundos y volver a intentar
-```
-
-**"Prisma client not generated"**
-```bash
-npm run db:generate
-```
-
-**"Table does not exist"**
-```bash
+# Initialize database
 npm run db:push
+npm run db:seed
+
+# Start development server
+npm run dev
+# → http://localhost:3000
 ```
 
-**Quiero empezar desde cero**
+### Demo credentials (loaded by seed)
+
+| Role | Email | Password |
+|---|---|---|
+| Super Admin | admin@consultora.com | Admin1234! |
+| RRHH | rrhh@consultora.com | Rrhh1234! |
+| Client | cliente@acme.cl | Client1234! |
+
+### Docker (full stack)
+
 ```bash
-npm run db:reset
-# Esto borra todos los datos y recarga el seed
+docker compose up --build
+# → http://localhost:3000
 ```
 
-**Puerto 5432 ya en uso**
+### Useful commands
+
 ```bash
-# Ver qué proceso usa ese puerto
-sudo lsof -i :5432
-# O cambiar el puerto en docker-compose.yml:
-#   ports:
-#     - '5433:5432'
-# Y actualizar DATABASE_URL en .env.local con el nuevo puerto
+npm run db:studio    # Prisma Studio — visual DB browser at :5555
+npm run db:seed      # Reload seed data
+npm run db:reset     # Wipe and re-seed
+npm run docker:up    # Start PostgreSQL container
+npm run docker:down  # Stop PostgreSQL container
 ```
 
----
+## Project Structure
 
-## Preparación para producción
-
-Cuando estés listo para llevar el sistema a producción:
-
-1. **Base de datos**: reemplazar `DATABASE_URL` en las variables de entorno por una URL de PostgreSQL gestionado (Railway, Supabase, RDS).
-
-2. **Clave secreta**: generar una nueva `AUTH_SECRET`:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-3. **Almacenamiento de archivos**: reemplazar la función `getUploadDir()` en `src/lib/utils.ts` por un cliente de AWS S3 o similar.
-
-4. **Variables de entorno**: configurar `NEXT_PUBLIC_APP_URL` con el dominio real.
-
-5. **Deploy**: el proyecto es compatible con Railway, Vercel (solo sin uploads locales), o cualquier VPS con Node.js.
+```
+src/
+├── app/
+│   ├── (auth)/login/          # Auth flow
+│   ├── (dashboard)/           # Consulting panel
+│   │   ├── dashboard/
+│   │   ├── companies/
+│   │   ├── services/
+│   │   ├── employees/
+│   │   └── users/
+│   ├── (portal)/portal/       # Client portal
+│   └── api/                   # REST endpoints
+├── components/                # Reusable UI components
+├── lib/
+│   ├── auth.ts                # Auth config
+│   ├── db.ts                  # Prisma client
+│   └── validations.ts         # Zod schemas
+└── types/
+prisma/
+├── schema.prisma              # Data model
+└── seed.ts                    # Demo data
+```
